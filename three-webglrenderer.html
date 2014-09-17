@@ -1,0 +1,146 @@
+<!--
+Copyright 2012 Flux Factory, Inc.
+-->
+
+<!-- TODO(aki): documentation -->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="three.html">
+
+<polymer-element name="three-webglrenderer" attributes="antialias alpha autoClear autoUpdateScene preserveDrawingBuffer width height">
+  <template>
+    <style type="text/css">
+      :host > canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+  </template>
+  <script type="text/javascript">
+    (function() {
+
+      var renderer;
+      var host;
+      var glEnabled = true;
+      var warned;
+
+      var ctxPerfNow = 0;
+      var ctxPerfDelta = 1000;
+      var ctxPerfAverage = 1000;
+
+      Polymer({
+
+        antialias: true,
+        alpha: false,
+        autoClear: false,
+        autoUpdateScene: true,
+        preserveDrawingBuffer: true,
+
+        //
+
+        width: null,
+        height: null,
+
+        observe: {
+          'antialias alpha autoClear autoUpdateScene preserveDrawingBuffer': 'update',
+          'width height': 'resize'
+        },
+
+        ready: function() {
+
+          this.canvas = document.createElement('canvas');
+          this.canvas.id = 'canvas';
+          this.ctx = this.canvas.getContext('2d');
+          this.shadowRoot.appendChild(this.canvas);
+
+          if (!Detector.webgl) {
+            this.shadowRoot.appendChild(Detector.getWebGLErrorMessage());
+            glEnabled = false;
+            return;
+          }
+
+          // TODO(aki) consider moving outside Polymer()
+          if (!renderer) {
+            renderer = new THREE.WebGLRenderer({
+              antialias: this.antialias,
+              alpha: this.alpha,
+              autoClear: this.autoClear,
+              autoUpdateScene: this.autoUpdateScene,
+              preserveDrawingBuffer: this.preserveDrawingBuffer
+            });
+          }
+
+          this.update();
+        },
+
+        resize: function() {
+          this.canvas.width = this.width * window.devicePixelRatio;
+          this.canvas.height = this.height * window.devicePixelRatio;
+          this.canvas.style.width = this.width + 'px';
+          this.canvas.style.height = this.height + 'px';
+          renderer.setSize(this.width, this.height);
+        },
+
+        setHost: function() {
+          if (!glEnabled) return;
+          if (this != host) {
+            ctxPerfDelta = performance.now() - ctxPerfNow;
+            ctxPerfAverage = Math.min((ctxPerfAverage * 10 + ctxPerfDelta) / 11, 1000);
+            ctxPerfNow = performance.now();
+
+            if (!warned && ctxPerfAverage < 16) {
+              console.warn('Updating multiple renderers is not recommended.');
+              warned = true;
+            }
+
+            if (host) {
+              host.ctx.drawImage(renderer.domElement, 0, 0, host.canvas.width, host.canvas.height);
+              host.canvas.style.display = 'block';
+            }
+
+            host = this;
+            this.setSize(this.width, this.height);
+            this.canvas.style.display = 'none';
+            this.shadowRoot.appendChild(renderer.domElement);
+          }
+        },
+
+        update: function() {
+          if (!glEnabled) return;
+          renderer.antialias = this.antialias;
+          renderer.alpha = this.alpha;
+          renderer.autoClear = this.autoClear;
+          renderer.autoUpdateScene = this.autoUpdateScene;
+          renderer.preserveDrawingBuffer = this.preserveDrawingBuffer;
+        },
+
+        clear: function() {
+          if (!glEnabled) return;
+          this.setHost();
+          renderer.clear.apply(renderer, arguments);
+        },
+
+        setClearColor: function() {
+          if (!glEnabled) return;
+          this.setHost();
+          renderer.setClearColor.apply(renderer, arguments);
+        },
+
+        setSize: function() {
+          if (!glEnabled) return;
+          this.setHost();
+          renderer.setSize.apply(renderer, arguments);
+        },
+
+        render: function() {
+          if (!glEnabled) return;
+          this.setHost();
+          renderer.render.apply(renderer, arguments);
+        }
+
+      });
+
+    })();
+  </script>
+</polymer-element>

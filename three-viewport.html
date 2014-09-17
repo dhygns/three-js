@@ -1,0 +1,405 @@
+<!--
+Copyright 2012 Flux Factory, Inc.
+-->
+
+<!-- TODO(aki): documentation -->
+<!--
+`three-viewport` provides an interactive viewport for 3D rendering using THREE.js it requires `flux-webglrenderer`
+
+Example:
+
+    <three-viewport camera="persp" gridOrientation="xz" showHelpers="true">
+    </three-viewport>
+
+@group Flux Elements
+@element three-viewport
+@homepage https://bitbucket.org/vannevartech/components
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="three.html">
+
+<link rel="import" href="three-gridhelper.html">
+<link rel="import" href="three-cameracontrols.html">
+<link rel="import" href="three-webglrenderer.html">
+
+<polymer-element name="three-viewport" attributes="scene camera tool showHelpers clearColor gridOrientation">
+  <template>
+    <style type="text/css">
+      :host {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        box-sizing: border-box;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        -ms-box-sizing: border-box;
+        cursor: crosshair;
+        position: relative;
+      }
+      :host(:focus) {
+        outline: 0;
+      }
+
+      :host(.fullscreen) {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+      #renderer,
+      #outline {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        pointer-events: none;
+      }
+      :host > #outline {
+        border: 1px solid #ddd;
+      }
+      :host(:focus) > #outline {
+        border: 1px solid #aae207;
+      }
+    </style>
+
+    <three-gridhelper id="grid" orientation="{{gridOrientation}}"></three-gridhelper>
+    <three-cameracontrols id="contorls"
+      camera="{{camera}}" mode="editor" domElement="{{}}" on-change="{{render}}"
+      enabled="{{(!tool || altKey) ? true : false}}">
+    </three-cameracontrols>
+    <three-webglrenderer id="renderer"
+      width="{{width}}" height="{{height}}">
+    </three-webglrenderer>
+    <div id="outline"></div>
+  </template>
+  <script type="text/javascript">
+
+    (function() {
+
+      var x, y, intersects;
+      var cameraWidth, cameraHeight;
+      var ray = new THREE.Raycaster();
+      var projector = new THREE.Projector();
+      var tempV3_0 = new THREE.Vector3();
+      var tempV3_1 = new THREE.Vector3();
+
+      var cameras = {
+        persp: new THREE.PerspectiveCamera(60, 1, 0.001, 1000),
+        top: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
+        bottom: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
+        left: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
+        right: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
+        front: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
+        back: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000)
+      };
+      cameras.persp.name = 'cameraPerspective';
+      cameras.persp.position.set(25, 25, 25);
+      cameras.persp.lookAt(new THREE.Vector3(0, 0, 0));
+      cameras.top.name = 'cameraTop';
+      cameras.top.position.set(0, 500, 0);
+      cameras.top.rotation.set(Math.PI / 2, 0, 0);
+      cameras.bottom.name = 'cameraBottom';
+      cameras.bottom.position.set(0, -500, 0);
+      cameras.bottom.rotation.set(-Math.PI / 2, 0, 0);
+      cameras.left.name = 'cameraLeft';
+      cameras.left.position.set(500, 0, 0);
+      cameras.left.rotation.set(0, Math.PI / 2, 0);
+      cameras.right.name = 'cameraRight';
+      cameras.right.position.set(-500, 0, 0);
+      cameras.right.rotation.set(0, -Math.PI / 2, 0);
+      cameras.front.name = 'cameraFront';
+      cameras.front.position.set(0, 0, -500);
+      cameras.front.rotation.set(0, 0, 0);
+      cameras.back.name = 'cameraBack';
+      cameras.back.position.set(0, 0, 500);
+      cameras.back.rotation.set(0, Math.PI, 0);
+
+      Polymer({
+
+        /**
+         * Scene to be rendered in this viewport.
+         *
+         * @attribute scene
+         * @type object
+         * @default new THREE.Scene()
+         */
+        scene: null,
+
+        /**
+         * Camera to be rendered with.
+         * Any instance of `THREE.Camera` can be set here.
+         * Can also be set to a string value that matches a key of a camera in `cameras` property
+         * For example "top" will set the camera to `this.cameras.top`
+         *
+         * @attribute camera
+         * @type object|string
+         * @default "persp"
+         */
+        camera: 'persp',
+
+        tool: null,
+
+        /**
+         * Determines if scene helpers are rendered.
+         *
+         * @attribute showHelpers
+         * @type boolean
+         * @default true
+         */
+        showHelpers: true,
+
+        /**
+         * Determines orientation of the grid.
+         * This attribute is set automatically when cameras are changed.
+         *
+         * @attribute gridOrientation
+         * @type string
+         * @default "xz"
+         */
+        gridOrientation: 'xz',
+
+        /**
+         * Background color
+         *
+         * @attribute clearColor
+         * @type object
+         * @default new THREE.Color(0xCCCCCC)
+         */
+        clearColor: new THREE.Color(0xCCCCCC),
+
+        observe: {
+          'showHelpers gridOrientation': 'renderLater'
+        },
+
+        /**
+         * Default cameras (shared across all instances of `three-viewport`)
+         *
+         * @property cameras
+         * @type object
+         */
+        cameras: cameras,
+
+
+        //
+        width: null,
+        height: null,
+        rendered: false,
+        shiftKey: false,
+        altKey: false,
+
+        ready: function() {
+
+          this.$.renderer.antialias = true;
+          this.$.renderer.autoUpdateScene = false;
+
+          this._getRay = this.getRay.bind(this);
+          this._getPointOnPlane = this.getPointOnPlane.bind(this);
+          this._render = this.render.bind(this);
+          this._resize = this.resize.bind(this);
+
+          if (!this.scene) this.scene = new THREE.Scene();
+
+          this.viewportHelpers = new THREE.Scene();
+          this.$.grid.mesh.name = 'name';
+          this.viewportHelpers.add(this.$.grid.mesh);
+
+          this.sceneChanged();
+          this.clearColorChanged();
+          this.cameraChanged();
+
+          this.addEventListener('mesh-added', function(event) {
+            this.scene.add(event.detail);
+            this.renderLater();
+          }.bind(this));
+          this.addEventListener('mesh-changed', function(event) {
+            this.renderLater();
+          }.bind(this));
+
+        },
+
+        domReady: function() {
+          this.setAttribute('tabindex', 0);
+          var scope = this;
+
+          this._resize();
+
+          var pointerEvents = [
+            'Down',
+            'Up',
+            'TrackStart',
+            'Track',
+            'TrackEnd',
+            'Tap',
+            'MouseMove'
+          ];
+
+          var keyEvents = [
+            'KeyDown',
+            'KeyUp'
+          ];
+
+          for (var i = pointerEvents.length; i--;) {
+            (function(i) {
+              PolymerGestures.addEventListener(scope,
+                pointerEvents[i].toLowerCase(),
+                function(event) {
+                  scope.focus();
+                  scope.render();
+                  if (!scope.tool || scope.altKey) return;
+                  if (scope.tool.constructor.prototype.hasOwnProperty(
+                    'on' + pointerEvents[i])) {
+                    event.ray = scope._getRay(event);
+                    event.pointOnPlane = scope._getPointOnPlane(
+                      event.ray, scope.shiftKey);
+                    scope.tool['on' + pointerEvents[i]](event);
+                  }
+                }
+              );
+            })(i);
+          }
+
+          for (var i = keyEvents.length; i--;) {
+            (function(i) {
+              scope.addEventListener(keyEvents[i].toLowerCase(),
+                function(event) {
+                  scope.render();
+                  if (!scope.tool || scope.altKey) return;
+                  if (scope.tool.constructor.prototype.hasOwnProperty(
+                    'on' + keyEvents[i])) {
+                    scope.tool['on' + keyEvents[i]](event);
+                  }
+                }
+              );
+            })(i);
+          }
+
+        },
+
+        resize: function() {
+          this.rect = this.getBoundingClientRect();
+          this.rect.width = Math.floor(this.rect.width);
+          this.rect.height = Math.floor(this.rect.height);
+
+          if (this.width != this.rect.width ||
+            this.height != this.rect.height)
+          {
+            this.width = this.rect.width;
+            this.height = this.rect.height;
+            this.updateCamera();
+          }
+
+          requestAnimationFrame(this._resize);
+        },
+
+        render: function() {
+          if (!this.rendered) {
+            this.$.renderer.clear();
+            this.preRender();
+
+            this.$.renderer.render(this.scene, this.camera);
+            if (this.showHelpers) {
+              this.$.renderer.render(this.viewportHelpers, this.camera);
+              this.$.renderer.render(this.scene.helpers, this.camera);
+            }
+
+            this.postRender();
+
+            this.rendered = true;
+            requestAnimationFrame(function() {
+              this.rendered = false;
+            }.bind(this));
+          }
+        },
+        renderLater: function() {
+          requestAnimationFrame(this._render);
+        },
+        preRender: function() {},
+        postRender: function() {},
+
+        clearColorChanged: function() {
+          this.$.renderer.setClearColor(this.clearColor);
+        },
+
+        sceneChanged: function() {
+          if (this.scene.helpers === undefined) {
+            this.scene.helpers = new THREE.Scene();
+          }
+        },
+
+        cameraChanged: function() {
+          if (!(this.camera instanceof THREE.Camera)) {
+            if (this.cameras.hasOwnProperty(this.camera)) {
+              this.camera = this.cameras[this.camera];
+            } else {
+              console.warn('Camera', this.camera, 'is not defined.');
+              this.camera = this.cameras['persp'];
+            }
+          }
+          this.updateCamera();
+        },
+        updateCamera: function() {
+          if (this.camera instanceof THREE.PerspectiveCamera) {
+            this.camera.aspect = this.width / this.height;
+          }
+          if (this.camera instanceof THREE.OrthographicCamera) {
+            this.camera.aspect = this.width / this.height;
+            cameraWidth = this.camera.right - this.camera.left;
+            cameraHeight = this.camera.top - this.camera.bottom;
+
+            this.camera.top = cameraHeight / 2;
+            this.camera.bottom = - cameraHeight / 2;
+            this.camera.right = cameraHeight / 2 * this.camera.aspect;
+            this.camera.left = - cameraHeight / 2 * this.camera.aspect;
+          }
+
+          this.camera.updateProjectionMatrix();
+          this.renderLater();
+        },
+
+        getRay: function(event) {
+          x = (event.clientX !== undefined) ? event.clientX : event.x;
+          y = (event.clientY !== undefined) ? event.clientY : event.y;
+          x = (x - this.rect.left) / this.rect.width * 2 - 1;
+          y = - (y - this.rect.top) / this.rect.height * 2 + 1;
+
+          tempV3_0 = new THREE.Vector3(x, y, 0.5);
+          this.camera.updateMatrixWorld();
+          // matrixWorld 12,13,14 are absolute position. 
+          tempV3_1 = new THREE.Vector3(
+            this.camera.matrixWorld.elements[12],
+            this.camera.matrixWorld.elements[13],
+            this.camera.matrixWorld.elements[14]
+         );
+          projector.unprojectVector(tempV3_0, this.camera);
+          ray.set(tempV3_1, tempV3_0.sub(tempV3_1).normalize());
+          return ray;
+        },
+
+        getPointOnPlane: function(ray, snap) {
+          // TODO(arodic): fix othographic when params on camera not default
+          // TODO(arodic): consider removing grid from viewport.
+          intersects = ray.intersectObjects([this.$.grid.plane], true);
+          if (intersects.length) {
+            if (snap) {
+              intersects[0].point.x =
+                Math.round(intersects[0].point.x / this.$.grid.size) *
+                this.$.grid.size;
+              intersects[0].point.y =
+                Math.round(intersects[0].point.y / this.$.grid.size) *
+                this.$.grid.size;
+              intersects[0].point.z =
+                Math.round(intersects[0].point.z / this.$.grid.size) *
+                this.$.grid.size;
+            }
+            return intersects[0].point;
+          }
+        }
+      });
+
+    })();
+  </script>
+</polymer-element>

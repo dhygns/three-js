@@ -1,0 +1,49 @@
+<!--
+Copyright 2012 Flux Factory, Inc.
+-->
+
+<!-- TODO(aki): documentation -->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="three.html">
+
+<polymer-element name="three-cameracontrols" attributes="camera mode domElement enabled">
+  <script type="text/javascript">
+    Polymer({
+
+      camera: null,
+      mode: null,
+      domElement: null,
+
+      ready: function() {
+        if (!this.domElement) {
+          console.error('three-cameracontrols requires a domElement attribute');
+        }
+      },
+
+      domElementChanged: function() {
+        // TODO(aki): implement other controls. E.g. first person etc.
+        this.orbitControls = new THREE.OrbitControls(this.camera, this.domElement);
+      },
+
+      enabledChanged: function() {
+        this.orbitControls.enabled = this.enabled;
+      },
+
+      cameraChanged: function() {
+
+        if (this.camera instanceof THREE.OrthographicCamera) {
+          this.orbitControls.noRotate = true;
+        } else if (this.camera instanceof THREE.PerspectiveCamera) {
+          this.orbitControls.noRotate = false;
+        }
+
+        this.orbitControls.addEventListener('change', function(event) {
+          this.fire('change');
+        }.bind(this));
+        // TODO(aki): implement camera change
+      }
+    });
+
+  </script>
+</polymer-element>
