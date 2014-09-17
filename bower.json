@@ -4,7 +4,7 @@
   "authors": [
     "Aki <aki@flux.io>"
   ],
-  "description": "THREE.js as a web component",
+  "description": "This is a three.js library wrapped in a web component. It includes convenient html import of three.js library as well as a collection of polymer wrappers for various three.js objects.",
   "main": "three.html",
   "keywords": [
     "threejs",
