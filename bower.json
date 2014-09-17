@@ -1,0 +1,29 @@
+{
+  "name": "three",
+  "version": "0.0.1",
+  "authors": [
+    "Aki <aki@flux.io>"
+  ],
+  "description": "THREE.js as a web component",
+  "main": "three.html",
+  "keywords": [
+    "threejs",
+    "three",
+    "webcomponets",
+    "polymer",
+    "cusomelements"
+  ],
+  "license": "MIT",
+  "homepage": "https://bitbucket.org/vannevartech/three/overview",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "js": "https://github.com/arodic/three.js.git#dev"
+  }
+}
