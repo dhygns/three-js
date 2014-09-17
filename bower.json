@@ -21,6 +21,6 @@
     ".gitignore"
   ],
   "dependencies": {
-    "js": "https://github.com/arodic/three.js.git#dev"
+    "polymer": "Polymer/polymer#~0.4.0"
   }
 }
