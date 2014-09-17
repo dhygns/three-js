@@ -17,7 +17,6 @@
   "homepage": "https://bitbucket.org/vannevartech/three/overview",
   "private": true,
   "ignore": [
-    "js",
     ".gitignore"
   ],
   "dependencies": {
