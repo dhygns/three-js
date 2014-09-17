@@ -17,11 +17,8 @@
   "homepage": "https://bitbucket.org/vannevartech/three/overview",
   "private": true,
   "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "tests"
+    "js",
+    ".gitignore"
   ],
   "dependencies": {
     "js": "https://github.com/arodic/three.js.git#dev"
