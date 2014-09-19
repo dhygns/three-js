@@ -20,9 +20,6 @@ Copyright 2012 Flux Factory, Inc.
       // 3D object used to visualize pointer position in 3D.
       pointer: new THREE.AxisHelper(2.5),
 
-      ready: function() {
-      },
-
       begin: function() {
         this.super();
 
@@ -36,6 +33,7 @@ Copyright 2012 Flux Factory, Inc.
 
         // Add pointer to the helper scene
         this.scene.helpers.add(this.pointer);
+        this.fire('core-signal', {name: "three-viewport", data: "renderLater"});
       },
 
       end: function() {
@@ -44,7 +42,7 @@ Copyright 2012 Flux Factory, Inc.
           // Remove pointer from the helper scene
           this.pointer.parent.remove(this.pointer);
         }
-        this.fire('tool-updated');
+        this.fire('core-signal', {name: "three-viewport", data: "renderLater"});
       },
 
       updateLine: function() {
@@ -101,7 +99,7 @@ Copyright 2012 Flux Factory, Inc.
       onDown: function(event) {
         if (!event.pointOnPlane) return;
         this.addPoint(event.pointOnPlane);
-        this.fire('tool-updated');
+        this.fire('core-signal', {name: "three-viewport", data: "renderLater"});
       },
       onTrack: function(event) {
        if (!event.pointOnPlane) return;
@@ -109,13 +107,19 @@ Copyright 2012 Flux Factory, Inc.
         this.moveLastPoint(event.pointOnPlane);
       },
       onUp: function(event) {
-        this.fire('tool-updated');
+        this.fire('core-signal', {name: "three-viewport", data: "renderLater"});
       },
 
       onKeyDown: function(event) {
-        if (event.keyIdentifier == 'Enter') {
-          this.end();
-          this.begin();
+        switch (event.which) {
+          case 27: // esc
+            this.end();
+            // TODO: communicate end to app
+            break;
+          case 13: // enter
+            this.end();
+            this.begin();
+            break;
         }
       }
 

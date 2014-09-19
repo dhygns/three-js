@@ -17,6 +17,7 @@ Example:
 -->
 
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../core-signals/core-signals.html">
 <link rel="import" href="three.html">
 
 <link rel="import" href="three-gridhelper.html">
@@ -65,7 +66,7 @@ Example:
         border: 1px solid #aae207;
       }
     </style>
-
+    <core-signals on-core-signal-three-viewport="{{threeViewportSignal}}"></core-signals>
     <three-gridhelper id="grid" orientation="{{gridOrientation}}"></three-gridhelper>
     <three-cameracontrols id="contorls"
       camera="{{camera}}" mode="editor" domElement="{{}}" on-change="{{render}}"
@@ -211,14 +212,6 @@ Example:
           this.clearColorChanged();
           this.cameraChanged();
 
-          this.addEventListener('mesh-added', function(event) {
-            this.scene.add(event.detail);
-            this.renderLater();
-          }.bind(this));
-          this.addEventListener('mesh-changed', function(event) {
-            this.renderLater();
-          }.bind(this));
-
         },
 
         domReady: function() {
@@ -355,7 +348,6 @@ Example:
             this.camera.right = cameraHeight / 2 * this.camera.aspect;
             this.camera.left = - cameraHeight / 2 * this.camera.aspect;
           }
-
           this.camera.updateProjectionMatrix();
           this.renderLater();
         },
@@ -368,7 +360,7 @@ Example:
 
           tempV3_0 = new THREE.Vector3(x, y, 0.5);
           this.camera.updateMatrixWorld();
-          // matrixWorld 12,13,14 are absolute position. 
+          // matrixWorld 12,13,14 are absolute position.
           tempV3_1 = new THREE.Vector3(
             this.camera.matrixWorld.elements[12],
             this.camera.matrixWorld.elements[13],
@@ -396,6 +388,13 @@ Example:
                 this.$.grid.size;
             }
             return intersects[0].point;
+          }
+        },
+
+        threeViewportSignal: function(event) {
+          // TODO(aki): Add ability to broadcast to viewports selectively.
+          if (event.detail.action !== undefined && typeof this[event.detail.action] === 'function') {
+            this[event.detail.action]();
           }
         }
       });

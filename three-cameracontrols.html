@@ -22,8 +22,22 @@ Copyright 2012 Flux Factory, Inc.
       },
 
       domElementChanged: function() {
+        if (!this.camera) {
+          console.error('three-cameracontrols requires a camera attribute');
+        }
         // TODO(aki): implement other controls. E.g. first person etc.
         this.orbitControls = new THREE.OrbitControls(this.camera, this.domElement);
+        this.getTarget();
+      },
+
+      getTarget: function() {
+        // Make sure target is persistent when switching cameras and dom Elements
+        if (!this.camera.target) {
+          this.camera.target = this.orbitControls.target;
+        } else {
+          this.orbitControls.target = this.camera.target;
+          this.orbitControls.update();
+        }
       },
 
       enabledChanged: function() {
@@ -37,6 +51,7 @@ Copyright 2012 Flux Factory, Inc.
         } else if (this.camera instanceof THREE.PerspectiveCamera) {
           this.orbitControls.noRotate = false;
         }
+        this.getTarget();
 
         this.orbitControls.addEventListener('change', function(event) {
           this.fire('change');
