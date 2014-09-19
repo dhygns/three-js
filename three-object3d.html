@@ -1,0 +1,81 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../three-components/three.html">
+
+<!--
+TODO(aki): documentation
+-->
+
+<polymer-element name="three-object3d" attributes="model">
+<template>
+    <div id="children"><content></content></div>
+</template>
+<script type="text/javascript">
+'use strict';
+Polymer({
+
+    model: null,
+    objectsInDom: [],
+
+    ready: function() {
+      if (!this.model) this.model = new THREE.Object3D();
+    },
+
+    modelChanged: function() {
+        this.fire('model-changed', this.model);
+    },
+
+    domReady: function() {
+      this.childrenUpdated();
+      this.$.children.addEventListener('model-changed', function(event) {
+        event.stopPropagation();
+        this.childrenUpdated();
+      }.bind(this));
+    },
+    childrenUpdated: function(observer, mutations) {
+        // Timeout will make sure getModels() is called only once
+        // even if scene/dom changes happen rapidly
+        window.clearTimeout(this.timeout);
+        this.timeout = window.setTimeout(this.getModels.bind(this), 1);
+        this.onMutation(this, this.childrenUpdated);
+    },
+
+    getModels: function() {
+        this.objectsInDom.length = 0;
+        var nodes = this.querySelectorAll('three-object3d');
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].model &&
+                nodes[i].model instanceof THREE.Object3D) {
+                this.model.add(nodes[i].model);
+                this.objectsInDom.push(nodes[i].model);
+            }
+        }
+        for (var i = this.model.children.length; i--;) {
+            var object = this.model.children[i];
+            if (this.objectsInDom.indexOf(object) === -1) {
+                this.model.remove(object);
+                if (object.geometry) object.geometry.dispose();
+                if (object.material) object.material.dispose();
+                object.dispose();
+            }
+        }
+        this.fire('core-signal', {name: 'three-viewport', data: {action: 'renderLater'}});
+    }
+});
+</script>
+</polymer-element>
+
+<polymer-element name="three-scene" extends="three-object3d" attributes="model">
+<template>
+    <div id="children"><content></content></div>
+</template>
+<script type="text/javascript">
+'use strict';
+Polymer({
+    ready: function() {
+        if (!this.model) {
+            this.model = new THREE.Scene();
+        }
+    }
+});
+</script>
+</polymer-element>

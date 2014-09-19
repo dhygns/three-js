@@ -202,7 +202,9 @@ Example:
           this._render = this.render.bind(this);
           this._resize = this.resize.bind(this);
 
-          if (!this.scene) this.scene = new THREE.Scene();
+          if (!this.scene) {
+            this.scene = new THREE.Scene();
+          }
 
           this.viewportHelpers = new THREE.Scene();
           this.$.grid.mesh.name = 'name';
