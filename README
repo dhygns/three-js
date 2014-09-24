@@ -1,5 +1,0 @@
-THREE
-=====
-
-This is a three.js library wrapped in a web component.
-It includes convenient html import of three.js library as well as a collection of polymer wrappers for various three.js objects.
