@@ -19,7 +19,6 @@
     ".gitignore"
   ],
   "dependencies": {
-    "three-js": "arodic/three.js#6b090539fd8d393ce53ff2de832234e9cf675bf0",
     "polymer": "Polymer/polymer#~0.4.1"
   }
 }
