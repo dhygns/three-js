@@ -1,23 +1,20 @@
 {
-  "name": "three",
-  "version": "0.0.1",
+  "name": "three-js",
+  "version": "0.0.3",
   "authors": [
     "Aki <aki@flux.io>"
   ],
-  "description": "This is a three.js library wrapped in a web component. It includes convenient html import of three.js library as well as a collection of polymer wrappers for various three.js objects.",
+  "description": "This is a bundle of THREE.js web components and associated JavaScript files.",
   "main": "three.html",
   "keywords": [
     "threejs",
     "three",
-    "webcomponets",
-    "polymer",
-    "cusomelements"
+    "web-componets",
+    "polymer"
   ],
   "homepage": "https://bitbucket.org/vannevartech/three/overview",
   "private": true,
-  "ignore": [
-    ".gitignore"
-  ],
+  "ignore": [],
   "dependencies": {
     "polymer": "Polymer/polymer#~0.4.1"
   }

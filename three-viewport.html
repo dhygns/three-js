@@ -2,20 +2,6 @@
 Copyright 2012 Flux Factory, Inc.
 -->
 
-<!-- TODO(aki): documentation -->
-<!--
-`three-viewport` provides an interactive viewport for 3D rendering using THREE.js it requires `flux-webglrenderer`
-
-Example:
-
-    <three-viewport camera="persp" gridOrientation="xz" showHelpers="true">
-    </three-viewport>
-
-@group Flux Elements
-@element three-viewport
-@homepage https://bitbucket.org/vannevartech/components
--->
-
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../core-signals/core-signals.html">
 <link rel="import" href="three.html">
@@ -24,7 +10,26 @@ Example:
 <link rel="import" href="three-gridhelper.html">
 <link rel="import" href="three-cameracontrols.html">
 
-<polymer-element name="three-viewport" attributes="scene camera tool showHelpers clearColor gridOrientation">
+<!--
+Interactive viewport for 3D rendering using THREE.js (http://threejs.org/).
+
+three-viewport provides a simple API for rendering multiple THREE.js scenes into multiple viewports.
+Each viewport can have different or shared cameras, tools and camera controls. 
+
+Example:
+
+    <three-viewport camera="persp" gridOrientation="xz" showHelpers="true"></three-viewport>
+-->
+
+<!--
+@group Flux Elements
+@element three-viewport
+@blurb Interactive viewport for 3D rendering using THREE.js
+@homepage https://bitbucket.org/vannevartech/three-js
+@status alpha
+-->
+
+<polymer-element name="three-viewport" tabindex="0">
   <template>
     <style type="text/css">
       :host {
@@ -41,14 +46,6 @@ Example:
       }
       :host(:focus) {
         outline: 0;
-      }
-
-      :host(.fullscreen) {
-        position: fixed;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
       }
       #renderer,
       #outline {
@@ -81,6 +78,7 @@ Example:
 
     (function() {
 
+      // temporary variables
       var x, y, intersects;
       var cameraWidth, cameraHeight;
       var ray = new THREE.Raycaster();
@@ -88,6 +86,8 @@ Example:
       var tempV3_0 = new THREE.Vector3();
       var tempV3_1 = new THREE.Vector3();
 
+      // Default cameras shared across all instances od three-viewport
+      // Default cameras can be specified by strings via camera attribute
       var cameras = {
         persp: new THREE.PerspectiveCamera(60, 1, 0.001, 1000),
         top: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
@@ -121,71 +121,80 @@ Example:
 
       Polymer({
 
-        /**
-         * Scene to be rendered in this viewport.
-         *
-         * @attribute scene
-         * @type object
-         * @default new THREE.Scene()
-         */
-        scene: null,
+        publish: {
 
-        /**
-         * Camera to be rendered with.
-         * Any instance of `THREE.Camera` can be set here.
-         * Can also be set to a string value that matches a key of a camera in `cameras` property
-         * For example "top" will set the camera to `this.cameras.top`
-         *
-         * @attribute camera
-         * @type object|string
-         * @default "persp"
-         */
-        camera: 'persp',
+          /**
+           * Scene to be rendered in this viewport.
+           *
+           * @attribute scene
+           * @type object
+           * @default new THREE.Scene()
+           */
+          scene: null,
 
-        tool: null,
+          /**
+           * Camera to be rendered with.
+           * Any instance of `THREE.Camera` can be set here.
+           * It can also be set to a string value that matches a key in `cameras` attribute
+           * For example `"top"` will set the camera to `this.cameras.top`
+           *
+           * @attribute camera
+           * @type object|string
+           * @default "persp"
+           */
+          camera: 'persp',
 
-        /**
-         * Determines if scene helpers are rendered.
-         *
-         * @attribute showHelpers
-         * @type boolean
-         * @default true
-         */
-        showHelpers: true,
+          /**
+           * Tool to recieve pointer events from this element.
+           * Tool should be an element extending `three-tool` element
+           *
+           * @attribute tool
+           * @type element
+           */
+          tool: null,
 
-        /**
-         * Determines orientation of the grid.
-         * This attribute is set automatically when cameras are changed.
-         *
-         * @attribute gridOrientation
-         * @type string
-         * @default "xz"
-         */
-        gridOrientation: 'xz',
+          /**
+           * Determines if scene helpers are rendered.
+           *
+           * @attribute showHelpers
+           * @type boolean
+           * @default true
+           */
+          showHelpers: true,
 
-        /**
-         * Background color
-         *
-         * @attribute clearColor
-         * @type object
-         * @default new THREE.Color(0xCCCCCC)
-         */
-        clearColor: new THREE.Color(0xCCCCCC),
+          /**
+           * Determines orientation of the grid.
+           * This attribute is set automatically when cameras are changed.
+           *
+           * @attribute gridOrientation
+           * @type string
+           * @default "xz"
+           */
+          gridOrientation: 'xz',
 
-        observe: {
-          'showHelpers gridOrientation': 'renderLater'
+          /**
+           * Background color
+           *
+           * @attribute clearColor
+           * @type object
+           * @default new THREE.Color(0xCCCCCC)
+           */
+          clearColor: null,
+
+          observe: {
+            'showHelpers gridOrientation': 'renderLater'
+          },
+
+          /**
+           * Default cameras shared across all instances of `three-viewport`.
+           *
+           * @attribute cameras
+           * @type object
+           */
+          cameras: cameras
+
         },
 
-        /**
-         * Default cameras (shared across all instances of `three-viewport`)
-         *
-         * @property cameras
-         * @type object
-         */
-        cameras: cameras,
-
-
-        //
         width: null,
         height: null,
         rendered: false,
@@ -194,17 +203,13 @@ Example:
 
         ready: function() {
 
-          this.$.renderer.antialias = true;
-          this.$.renderer.autoUpdateScene = false;
-
           this._getRay = this.getRay.bind(this);
           this._getPointOnPlane = this.getPointOnPlane.bind(this);
           this._render = this.render.bind(this);
           this._resize = this.resize.bind(this);
 
-          if (!this.scene) {
-            this.scene = new THREE.Scene();
-          }
+          if (!this.scene) this.scene = new THREE.Scene();
+          if (!this.clearColor) this.clearColor = new THREE.Color(0xC5CDCC);
 
           this.viewportHelpers = new THREE.Scene();
           this.$.grid.mesh.name = 'name';
@@ -217,7 +222,6 @@ Example:
         },
 
         domReady: function() {
-          this.setAttribute('tabindex', 0);
           var scope = this;
 
           this._resize();
@@ -286,22 +290,18 @@ Example:
             this.height = this.rect.height;
             this.updateCamera();
           }
-
           requestAnimationFrame(this._resize);
         },
 
         render: function() {
           if (!this.rendered) {
             this.$.renderer.clear();
-            this.preRender();
 
             this.$.renderer.render(this.scene, this.camera);
             if (this.showHelpers) {
               this.$.renderer.render(this.viewportHelpers, this.camera);
               this.$.renderer.render(this.scene.helpers, this.camera);
             }
-
-            this.postRender();
 
             this.rendered = true;
             requestAnimationFrame(function() {
@@ -312,8 +312,6 @@ Example:
         renderLater: function() {
           requestAnimationFrame(this._render);
         },
-        preRender: function() {},
-        postRender: function() {},
 
         clearColorChanged: function() {
           this.$.renderer.setClearColor(this.clearColor);
@@ -354,12 +352,16 @@ Example:
           this.renderLater();
         },
 
+        /**
+         * @param {Object} event Pointer event
+         * @return {Object} Ray based on current camera
+         * @method getRay
+         */
         getRay: function(event) {
           x = (event.clientX !== undefined) ? event.clientX : event.x;
           y = (event.clientY !== undefined) ? event.clientY : event.y;
           x = (x - this.rect.left) / this.rect.width * 2 - 1;
           y = - (y - this.rect.top) / this.rect.height * 2 + 1;
-
           tempV3_0 = new THREE.Vector3(x, y, 0.5);
           this.camera.updateMatrixWorld();
           // matrixWorld 12,13,14 are absolute position.
@@ -373,6 +375,12 @@ Example:
           return ray;
         },
 
+        /**
+         * @method getRay
+         * @param {Object} ray Ray to project on the grid plane
+         * @param {Boolean} snap If true, resulting point will snap to nearest grid line crossing
+         * @return {Object} THREE.Vector3 representing point of intersection of a ray and grid plane
+         */
         getPointOnPlane: function(ray, snap) {
           // TODO(arodic): fix othographic when params on camera not default
           // TODO(arodic): consider removing grid from viewport.
@@ -393,6 +401,14 @@ Example:
           }
         },
 
+        /**
+         * @method threeViewportSignal
+         * This element recieves core-signal-three-viewport and performs action specified
+         * in the signal detail. For example, 3D object that changed it's geometry can notify
+         * all viewports to perform renderLater action by firing:
+         *
+         *     `this.fire('core-signal', {name: 'three-viewport', data: {action: 'renderLater'}});`
+         */
         threeViewportSignal: function(event) {
           // TODO(aki): Add ability to broadcast to viewports selectively.
           if (event.detail.action !== undefined && typeof this[event.detail.action] === 'function') {

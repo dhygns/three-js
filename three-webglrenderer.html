@@ -2,18 +2,38 @@
 Copyright 2012 Flux Factory, Inc.
 -->
 
-<!-- TODO(aki): documentation -->
 
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="three.html">
 
-<polymer-element name="three-webglrenderer" attributes="antialias alpha autoClear autoUpdateScene preserveDrawingBuffer width height">
+<!--
+Element wrapper for the THREE.WebGLRenderer (http://threejs.org/).
+
+three-webglrenderer implements THREE.WebGLRenderer and makes it possible to use
+a single WebGL rendering context in multiple canvases/viewports. It is designed to work with
+three-viewport element but it can be used independently. Keep in mind that in order to render
+to multiple canvases, this element will migrate the WebGL canvas and copy its contents into a
+temporary Canvas2D. This is an expensive operation and shuld be avoided. In other words,
+if you have multiple instances of three-webglrenderer, avoid rendering simultaniously.
+-->
+
+<!--
+@group Flux Elements
+@class three-webglrenderer
+@blurb Element wrapper for the THREE.WebGLRenderer
+@homepage https://bitbucket.org/vannevartech/three-js
+@status alpha
+-->
+<polymer-element name="three-webglrenderer">
   <template>
     <style type="text/css">
       :host > canvas {
         position: absolute;
         top: 0;
         left: 0;
+        bottom: 0;
+        right: 0;
+
       }
     </style>
   </template>
@@ -21,60 +41,125 @@ Copyright 2012 Flux Factory, Inc.
     (function() {
 
       var renderer;
-      var host;
+      var currentHost;
       var glEnabled = true;
-      var warned;
+
 
       var ctxPerfNow = 0;
       var ctxPerfDelta = 1000;
       var ctxPerfAverage = 1000;
+      var ctxPerfWarned;
+
+      /**
+       * This function runs every time renderer migrates to another three-webglrenderer host
+       * It is designed to detect if migration feature is overrused by the user.
+       */
+      var performanceCheck = function() {
+        ctxPerfDelta = performance.now() - ctxPerfNow;
+        ctxPerfAverage = Math.min((ctxPerfAverage * 10 + ctxPerfDelta) / 11, 1000);
+        ctxPerfNow = performance.now();
+        if (!ctxPerfWarned && ctxPerfAverage < 16) {
+          console.warn('Rendering with multiple renderers simultaniously is not recommended.');
+          ctxPerfWarned = true;
+        }
+      };
+
+      /**
+      * Renderer method that will be available on this element as proxy.
+      * calling this method will triger renderer migration.
+      * @method clear
+      * @method setClearColor
+      * @method setSize
+      * @method render
+      */
+      var methods = ['clear', 'setClearColor', 'setSize', 'render'];
 
       Polymer({
+        publish: {
+          /**
+           * THREE.WebGLRenderer attributes
+           */
+          autoClear: false,
+          autoClearColor: false,
+          autoClearDepth: false,
+          autoClearStencil: false,
+          sortObjects: true,
+          gammaInput: true,
+          gammaOutput: true,
 
-        antialias: true,
-        alpha: false,
-        autoClear: false,
-        autoUpdateScene: true,
-        preserveDrawingBuffer: true,
-
-        //
-
-        width: null,
-        height: null,
+          /**
+           * @attribute width
+           * @type number
+           * @default null
+           */
+          width: null,
+          /**
+           * @attribute height
+           * @type number
+           * @default null
+           */
+          height: null
+        },
 
         observe: {
-          'antialias alpha autoClear autoUpdateScene preserveDrawingBuffer': 'update',
-          'width height': 'resize'
+          'autoClear': 'update',
+          'autoClearColor': 'update',
+          'autoClearDepth': 'update',
+          'autoClearStencil': 'update',
+          'sortObjects': 'update',
+          'gammaInput': 'update',
+          'gammaOutput': 'update',
+          'width height': 'resizeCanvas'
         },
 
         ready: function() {
-
+          // Canvas2D used to store framebuffer pixels after renderer.domElement migration.
           this.canvas = document.createElement('canvas');
           this.canvas.id = 'canvas';
           this.ctx = this.canvas.getContext('2d');
           this.shadowRoot.appendChild(this.canvas);
 
+          // Detect WebGL support
           if (!Detector.webgl) {
             this.shadowRoot.appendChild(Detector.getWebGLErrorMessage());
             glEnabled = false;
             return;
           }
 
-          // TODO(aki) consider moving outside Polymer()
+          // Create renderer for the first time.
           if (!renderer) {
             renderer = new THREE.WebGLRenderer({
-              antialias: this.antialias,
-              alpha: this.alpha,
-              autoClear: this.autoClear,
-              autoUpdateScene: this.autoUpdateScene,
-              preserveDrawingBuffer: this.preserveDrawingBuffer
+              antialias: true,
+              preserveDrawingBuffer: true,
+              alpha: false
             });
+            this.update();
           }
 
-          this.update();
+          // Create proxies for renderer methods
+          methods.forEach(function(method) {
+            this[method] = function() {
+              if (!glEnabled) return;
+              this.setHost();
+              renderer[method].apply(renderer, arguments);
+            }
+          }.bind(this));
         },
 
-        resize: function() {
+        // Set renderer parameters
+        update: function() {
+          if (!glEnabled) return;
+          renderer.autoClear = this.autoClear;
+          renderer.autoClearColor = this.autoClearColor;
+          renderer.autoClearDepth = this.autoClearDepth;
+          renderer.autoClearStencil = this.autoClearStencil;
+          renderer.sortObjects = this.sortObjects;
+          renderer.gammaInput = this.gammaInput;
+          renderer.gammaOutput = this.gammaOutput;
+        },
+
+        // Resize canvas2D automatically
+        resizeCanvas: function() {
           this.canvas.width = this.width * window.devicePixelRatio;
           this.canvas.height = this.height * window.devicePixelRatio;
           this.canvas.style.width = this.width + 'px';
@@ -82,61 +167,24 @@ Copyright 2012 Flux Factory, Inc.
           renderer.setSize(this.width, this.height);
         },
 
+        /**
+         * Migrate renderer.domElement to this host if necessary
+         * and copy framebuffer into Canvas2D element of the previous host.
+         */
         setHost: function() {
           if (!glEnabled) return;
-          if (this != host) {
-            ctxPerfDelta = performance.now() - ctxPerfNow;
-            ctxPerfAverage = Math.min((ctxPerfAverage * 10 + ctxPerfDelta) / 11, 1000);
-            ctxPerfNow = performance.now();
-
-            if (!warned && ctxPerfAverage < 16) {
-              console.warn('Updating multiple renderers is not recommended.');
-              warned = true;
+          if (this != currentHost) {
+            performanceCheck();
+            if (currentHost) {
+              currentHost.ctx.drawImage(renderer.domElement, 0, 0, currentHost.canvas.width, currentHost.canvas.height);
+              currentHost.canvas.style.display = 'block';
             }
-
-            if (host) {
-              host.ctx.drawImage(renderer.domElement, 0, 0, host.canvas.width, host.canvas.height);
-              host.canvas.style.display = 'block';
-            }
-
-            host = this;
-            this.setSize(this.width, this.height);
-            this.canvas.style.display = 'none';
+            currentHost = this;
+            renderer.setSize(this.width, this.height);
             this.shadowRoot.appendChild(renderer.domElement);
+            this.canvas.style.display = 'none';
+            this.update();
           }
-        },
-
-        update: function() {
-          if (!glEnabled) return;
-          renderer.antialias = this.antialias;
-          renderer.alpha = this.alpha;
-          renderer.autoClear = this.autoClear;
-          renderer.autoUpdateScene = this.autoUpdateScene;
-          renderer.preserveDrawingBuffer = this.preserveDrawingBuffer;
-        },
-
-        clear: function() {
-          if (!glEnabled) return;
-          this.setHost();
-          renderer.clear.apply(renderer, arguments);
-        },
-
-        setClearColor: function() {
-          if (!glEnabled) return;
-          this.setHost();
-          renderer.setClearColor.apply(renderer, arguments);
-        },
-
-        setSize: function() {
-          if (!glEnabled) return;
-          this.setHost();
-          renderer.setSize.apply(renderer, arguments);
-        },
-
-        render: function() {
-          if (!glEnabled) return;
-          this.setHost();
-          renderer.render.apply(renderer, arguments);
         }
 
       });
