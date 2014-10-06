@@ -279,15 +279,15 @@ Example:
         },
 
         resize: function() {
-          this.rect = this.getBoundingClientRect();
-          this.rect.width = Math.floor(this.rect.width);
-          this.rect.height = Math.floor(this.rect.height);
+          this._rect = this.getBoundingClientRect();
+          this._rect.width = Math.floor(this._rect.width);
+          this._rect.height = Math.floor(this._rect.height);
 
-          if (this.width != this.rect.width ||
-            this.height != this.rect.height)
+          if (this.width != this._rect.width ||
+            this.height != this._rect.height)
           {
-            this.width = this.rect.width;
-            this.height = this.rect.height;
+            this.width = this._rect.width;
+            this.height = this._rect.height;
             this.updateCamera();
           }
           requestAnimationFrame(this._resize);
@@ -360,8 +360,8 @@ Example:
         getRay: function(event) {
           x = (event.clientX !== undefined) ? event.clientX : event.x;
           y = (event.clientY !== undefined) ? event.clientY : event.y;
-          x = (x - this.rect.left) / this.rect.width * 2 - 1;
-          y = - (y - this.rect.top) / this.rect.height * 2 + 1;
+          x = (x - this._rect.left) / this._rect.width * 2 - 1;
+          y = - (y - this._rect.top) / this._rect.height * 2 + 1;
           tempV3_0 = new THREE.Vector3(x, y, 0.5);
           this.camera.updateMatrixWorld();
           // matrixWorld 12,13,14 are absolute position.

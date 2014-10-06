@@ -43,6 +43,7 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
       var renderer;
       var currentHost;
       var glEnabled = true;
+      var gl;
 
 
       var ctxPerfNow = 0;
@@ -133,6 +134,7 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
               preserveDrawingBuffer: true,
               alpha: false
             });
+            gl = renderer.getContext();
             this.update();
           }
 
@@ -177,6 +179,7 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
             performanceCheck();
             if (currentHost) {
               currentHost.ctx.drawImage(renderer.domElement, 0, 0, currentHost.canvas.width, currentHost.canvas.height);
+              gl.flush();
               currentHost.canvas.style.display = 'block';
             }
             currentHost = this;
