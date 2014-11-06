@@ -45,7 +45,9 @@ Copyright 2012 Flux Factory, Inc.
       },
 
       cameraChanged: function() {
-
+        this.orbitControls.enabled = false;
+        this.orbitControls = new THREE.OrbitControls(this.camera, this.domElement);
+        
         if (this.camera instanceof THREE.OrthographicCamera) {
           this.orbitControls.noRotate = true;
         } else if (this.camera instanceof THREE.PerspectiveCamera) {

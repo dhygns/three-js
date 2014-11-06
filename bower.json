@@ -1,6 +1,6 @@
 {
   "name": "three-js",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "authors": [
     "Aki <aki@flux.io>"
   ],
@@ -16,6 +16,6 @@
   "private": true,
   "ignore": [],
   "dependencies": {
-    "polymer": "Polymer/polymer#~0.4.1"
+    "polymer": "Polymer/polymer#~0.4.2"
   }
 }
