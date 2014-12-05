@@ -86,39 +86,6 @@ Example:
       var tempV3_0 = new THREE.Vector3();
       var tempV3_1 = new THREE.Vector3();
 
-      // Default cameras shared across all instances od three-viewport
-      // Default cameras can be specified by strings via camera attribute
-      var cameras = {
-        persp: new THREE.PerspectiveCamera(60, 1, 0.001, 1000),
-        top: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
-        bottom: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
-        left: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
-        right: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
-        front: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000),
-        back: new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000)
-      };
-      cameras.persp.name = 'cameraPerspective';
-      cameras.persp.position.set(25, 25, 25);
-      cameras.persp.lookAt(new THREE.Vector3(0, 0, 0));
-      cameras.top.name = 'cameraTop';
-      cameras.top.position.set(0, 500, 0);
-      cameras.top.rotation.set(Math.PI / 2, 0, 0);
-      cameras.bottom.name = 'cameraBottom';
-      cameras.bottom.position.set(0, -500, 0);
-      cameras.bottom.rotation.set(-Math.PI / 2, 0, 0);
-      cameras.left.name = 'cameraLeft';
-      cameras.left.position.set(500, 0, 0);
-      cameras.left.rotation.set(0, Math.PI / 2, 0);
-      cameras.right.name = 'cameraRight';
-      cameras.right.position.set(-500, 0, 0);
-      cameras.right.rotation.set(0, -Math.PI / 2, 0);
-      cameras.front.name = 'cameraFront';
-      cameras.front.position.set(0, 0, -500);
-      cameras.front.rotation.set(0, 0, 0);
-      cameras.back.name = 'cameraBack';
-      cameras.back.position.set(0, 0, 500);
-      cameras.back.rotation.set(0, Math.PI, 0);
-
       Polymer({
 
         publish: {
@@ -135,14 +102,14 @@ Example:
           /**
            * Camera to be rendered with.
            * Any instance of `THREE.Camera` can be set here.
-           * It can also be set to a string value that matches a key in `cameras` attribute
-           * For example `"top"` will set the camera to `this.cameras.top`
            *
            * @attribute camera
-           * @type object|string
-           * @default "persp"
+           * @type object
            */
-          camera: 'persp',
+          camera: null,
+
+          //TODO
+          cameraType: 'persp',
 
           /**
            * Tool to recieve pointer events from this element.
@@ -182,16 +149,9 @@ Example:
           clearColor: null,
 
           observe: {
-            'showHelpers gridOrientation': 'renderLater'
+            'showHelpers gridOrientation': 'renderLater',
+            'camera': 'updateCamera'
           },
-
-          /**
-           * Default cameras shared across all instances of `three-viewport`.
-           *
-           * @attribute cameras
-           * @type object
-           */
-          cameras: cameras
 
         },
 
@@ -217,7 +177,7 @@ Example:
 
           this.sceneChanged();
           this.clearColorChanged();
-          this.cameraChanged();
+          this.cameraTypeChanged();
 
         },
 
@@ -323,17 +283,55 @@ Example:
           }
         },
 
-        cameraChanged: function() {
-          if (!(this.camera instanceof THREE.Camera)) {
-            if (this.cameras.hasOwnProperty(this.camera)) {
-              this.camera = this.cameras[this.camera];
-            } else {
-              console.warn('Camera', this.camera, 'is not defined.');
-              this.camera = this.cameras['persp'];
-            }
+        cameraTypeChanged: function() {
+          var camera;
+          switch (this.cameraType) {
+            case 'front':
+              camera = new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000);
+              camera.name = 'cameraFront';
+              camera.position.set(0, 0, -500);
+              camera.rotation.set(0, 0, 0);
+              break;
+            case 'back':
+              camera = new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000);
+              camera.name = 'cameraBack';
+              camera.position.set(0, 0, 500);
+              camera.rotation.set(0, Math.PI, 0);
+              break;
+            case 'left':
+              camera = new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000);
+              camera.name = 'cameraLeft';
+              camera.position.set(500, 0, 0);
+              camera.rotation.set(0, Math.PI / 2, 0);
+              break;
+            case 'right':
+              camera = new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000);
+              camera.name = 'cameraRight';
+              camera.position.set(-500, 0, 0);
+              camera.rotation.set(0, -Math.PI / 2, 0);
+              break;
+            case 'top':
+              camera = new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000);
+              camera.name = 'cameraTop';
+              camera.position.set(0, 500, 0);
+              camera.rotation.set(Math.PI / 2, 0, 0);
+              break;
+            case 'bottom':
+              camera = new THREE.OrthographicCamera(-100, 100, 100, -100, -1000, 1000);
+              camera.name = 'cameraBottom';
+              camera.position.set(0, -500, 0);
+              camera.rotation.set(-Math.PI / 2, 0, 0);
+              break;
+            case 'persp':
+              camera = new THREE.PerspectiveCamera(60, 1, 0.001, 1000);
+              camera.name = 'cameraPerspective';
+              camera.position.set(25, 25, 25);
+              camera.lookAt(new THREE.Vector3(0, 0, 0));
+              break;
           }
-          this.updateCamera();
+          this.camera = camera;
         },
+
         updateCamera: function() {
           if (this.camera instanceof THREE.PerspectiveCamera) {
             this.camera.aspect = this.width / this.height;
