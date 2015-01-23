@@ -322,6 +322,17 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [three-
           }
         },
 
+        focusObject: function(object) {
+          requestAnimationFrame(function() {
+              object.updateMatrixWorld();
+              if (object.geometry) {
+                  object.geometry.computeBoundingSphere();
+                  this.$.controls.controls.focus(object, true);
+                  this.renderLater();
+              }
+          }.bind(this));
+        },
+
         handleMouseMove: function(event) {
           this.fire('viewport-hover', this);
         },
