@@ -1,66 +1,39 @@
+<link rel="import" href="../three.html">
+
 <!--
-Copyright 2012 Flux Factory, Inc.
+Viewport camera controller
+
+@element three-viewport-controls
+@blurb Viewport camera controller
 -->
 
-<!-- TODO(aki): documentation -->
-
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="three.html">
-
-<polymer-element name="three-cameracontrols" attributes="camera mode domElement enabled">
+<polymer-element name="three-viewport-controls">
+  <template></template>
   <script type="text/javascript">
-    Polymer({
 
-      camera: null,
-      mode: null,
-      domElement: null,
+      Polymer({
+        publish: {
+          camera: null,
+          enabled: true,
+          controls: null
+        },
+        cameraChanged: function() {
+          // TODO: add dispose to controls
+          // TODO: improve editor controls
+          this.controls = new THREE.EditorControls(this.camera, this.parentNode.host);
+          this.controls.addEventListener('change', function() {
+            this.fire('controls-changed', this);
+          }.bind(this));
 
-      ready: function() {
-        if (!this.domElement) {
-          console.error('three-cameracontrols requires a domElement attribute');
+          if (this.camera instanceof THREE.OrthographicCamera) {
+            // TODO: unhack
+            this.controls.rotate = function() {};
+          }
+        },
+        enabledChanged: function() {
+          this.controls.enabled = this.enabled;
         }
-      },
 
-      domElementChanged: function() {
-        if (!this.camera) {
-          console.error('three-cameracontrols requires a camera attribute');
-        }
-        // TODO(aki): implement other controls. E.g. first person etc.
-        this.orbitControls = new THREE.OrbitControls(this.camera, this.domElement);
-        this.getTarget();
-      },
-
-      getTarget: function() {
-        // Make sure target is persistent when switching cameras and dom Elements
-        if (!this.camera.target) {
-          this.camera.target = this.orbitControls.target;
-        } else {
-          this.orbitControls.target = this.camera.target;
-          this.orbitControls.update();
-        }
-      },
-
-      enabledChanged: function() {
-        this.orbitControls.enabled = this.enabled;
-      },
-
-      cameraChanged: function() {
-        this.orbitControls.enabled = false;
-        this.orbitControls = new THREE.OrbitControls(this.camera, this.domElement);
-        
-        if (this.camera instanceof THREE.OrthographicCamera) {
-          this.orbitControls.noRotate = true;
-        } else if (this.camera instanceof THREE.PerspectiveCamera) {
-          this.orbitControls.noRotate = false;
-        }
-        this.getTarget();
-
-        this.orbitControls.addEventListener('change', function(event) {
-          this.fire('change');
-        }.bind(this));
-        // TODO(aki): implement camera change
-      }
-    });
-
+      });
   </script>
 </polymer-element>

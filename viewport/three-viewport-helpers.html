@@ -1,73 +1,189 @@
+<link rel="import" href="../three.html">
+
 <!--
-Copyright 2012 Flux Factory, Inc.
+Manages viewport helpers (grid and axis).
+
+@element three-viewport-helpers
+@blurb Manages viewport helpers (grid and axis).
 -->
 
-<!-- TODO(aki): documentation -->
-
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="three.html">
-
-<polymer-element name="three-gridhelper" attributes="width size opacity visible color1 color2 orientation">
+<polymer-element name="three-viewport-helpers">
+  <template></template>
   <script type="text/javascript">
-    Polymer({
 
-      width: 10,
-      size: 10,
-      opacity: 1,
-      visible: true,
-      // Primary line color
-      color1: new THREE.Color(0x111111),
-      // Secondary line color
-      color2: new THREE.Color(0xaaaaaa),
+      Polymer({
+        publish: {
+          /**
+           * Viewport helpers to be rendered in this viewport.
+           *
+           * @attribute scene
+           * @type object
+           * @default new THREE.Scene()
+           */
+          scene: null,
+          /**
+           * Orients the grid and intersection plane towards the camera view.
+           * Available settings: persp, top, bottom, front, back, left, right
+           * Changind this attribute will change the grid and intersection plane orientation
+           *
+           * @attribute view
+           * @type string
+           * @default null
+           */
+          view: null,
+          /**
+           * Determines which axis is up.
+           * @attribute upAxis
+           * @type string
+           * @default 'y'
+           */
+          upAxis: 'y',
+          /**
+           * Determines if the grid is visible
+           *
+           * @attribute showGrid
+           * @type boolean
+           * @default true
+           */
+          showGrid: true,
+          /**
+           * Determines if the axis is visible
+           *
+           * @attribute showAxis
+           * @type boolean
+           * @default true
+           */
+          showAxis: true,
+          /**
+           * Determines the size of the grid cell 
+           *
+           * @attribute gridSize
+           * @type number
+           * @default 10
+           */
+          gridSize: 10,
+          /**
+           * Determines the total grid width 
+           *
+           * @attribute gridWidth
+           * @type number
+           * @default 10
+           */
+          gridWidth: 10,
+          /**
+           * Grid axis color
+           *
+           * @attribute gridColor1
+           * @type object
+           * @default new THREE.Color(0x111111)
+           */
+          gridColor1: null,
+          /**
+           * Grid color
+           *
+           * @attribute gridColor2
+           * @type object
+           * @default new THREE.Color(0xaaaaaa)
+           */
+          gridColor2: null
+        },
 
-      observe: {
-        'width size opacity visible color1 color2': 'update'
-      },
+        observe: {
+          'gridColor1.r gridColor1.g gridColor1.b': 'updateGrid',
+          'gridColor2.r gridColor2.g gridColor2.b': 'updateGrid',
+          'gridSize gridWidth': 'updateGrid'
+        },
 
-      ready: function() {
+        scene: null,
+        grid: null,
+        plane: null,
+        axis: null,
 
-        this.mesh = new THREE.GridHelper(this.size * this.width, this.size);
-        this.plane = new THREE.Mesh(
-          new THREE.PlaneGeometry(1000000, 1000000, 2, 2),
-          new THREE.MeshBasicMaterial({side: THREE.DoubleSide}));
-        this.update();
+        ready: function() {
+          if (!this.scene) this.scene = new THREE.Scene();
+          if (!this.gridColor1) this.gridColor1 = new THREE.Color(0x111111);
+          if (!this.gridColor2) this.gridColor2 = new THREE.Color(0xaaaaaa);
 
-      },
+          this.grid = new THREE.GridHelper(this.gridSize * this.gridWidth, this.gridSize);
+          this.grid.setColors(this.gridColor1, this.gridColor2);
+          this.scene.add(this.grid);
+          
+          this.plane = new THREE.Mesh(
+              new THREE.PlaneBufferGeometry(1000000, 1000000, 2, 2),
+              new THREE.MeshBasicMaterial({side: THREE.DoubleSide})
+          );
+          this.plane.rotation.set(Math.PI / 2, 0, 0);
+          this.plane.material.transparent = true;
+          this.plane.material.opacity = 0;
+          this.scene.add(this.plane);
 
-      orientationChanged: function() {
-        switch (this.orientation) {
-          case 'xz':
-            this.mesh.rotation.set(0, 0, 0);
-            this.plane.rotation.set(Math.PI / 2, 0, 0);
-            break;
-          case 'xy':
-            this.mesh.rotation.set(Math.PI / 2, 0, 0);
-            this.plane.rotation.set(0, 0, 0);
-            break;
-          case 'yz':
-            this.mesh.rotation.set(0, 0, Math.PI / 2);
-            this.plane.rotation.set(0, Math.PI / 2, 0);
-            break;
+          this.axis = new THREE.AxisHelper(10);
+          this.axis.material.linewidth = 2;
+          this.scene.add(this.axis);
+        },
+
+        upAxisChanges: function() {
+          this.viewChanged();
+        },
+
+        viewChanged: function() {
+          switch (this.view + '_' + this.upAxis) {
+            case 'top_y':
+            case 'bottom_y':
+            case 'persp_y':
+            case 'left_z':
+            case 'right_z':
+              // facing Y
+              this.grid.rotation.set(0, 0, 0);
+              this.plane.rotation.set(Math.PI / 2, 0, 0);
+              break;
+            case 'left_y':
+            case 'right_y':
+            case 'front_z':
+            case 'back_z':
+              // facing X
+              this.grid.rotation.set(0, 0, Math.PI / 2);
+              this.plane.rotation.set(0, Math.PI / 2, 0);
+              break;
+            case 'front_y':
+            case 'back_y':
+            case 'top_z':
+            case 'bottom_z':
+            case 'persp_z':
+              // facing Z
+              this.grid.rotation.set(Math.PI / 2, 0, 0);
+              this.plane.rotation.set(0, 0, Math.PI / 2);
+              break;
+          }
+          this.fire('helper-changed', this.scene);
+        },
+
+        showGridChanged: function() {
+          this.grid.visible = this.showGrid;
+          this.fire('helper-changed', this.scene);
+        },
+        showAxisChanged: function() {
+          this.axis.visible = this.showAxis;
+          this.fire('helper-changed', this.scene);
+        },
+
+        updateGrid: function() {
+          var gridhelper = new THREE.GridHelper(this.gridSize * this.gridWidth, this.gridSize);
+          gridhelper.setColors(this.gridColor1, this.gridColor2);
+          this.grid.geometry = gridhelper.geometry;
+          this.grid.dispatchEvent( { type: 'removed' } );
+          this.grid.dispatchEvent( { type: 'added' } );
+          /**
+           * Fired when helper is changed
+           *
+           * @event helper-changed
+           * @param {Object} detail
+           * @param {Object} detail.scene helper scene
+           */
+          this.fire('helper-changed', this.scene);
         }
 
-        this.mesh.updateMatrixWorld();
-        this.plane.updateMatrixWorld();
-
-      },
-
-      update: function() {
-        var gridhelper = new THREE.GridHelper(this.size * this.width, this.size);
-        gridhelper.setColors(this.color1, this.color2);
-        this.mesh.geometry = gridhelper.geometry;
-        this.mesh.material = gridhelper.material;
-        this.mesh.geometry.verticesNeedUpdate = true;
-        this.mesh.visible = this.visible;
-        this.mesh.material.transparent = true;
-        this.mesh.material.opacity = this.opacity;
-        this.mesh.__webglInit = undefined;
-      }
-
-    });
+      });
 
   </script>
 </polymer-element>
