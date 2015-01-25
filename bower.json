@@ -1,0 +1,21 @@
+{
+  "name": "three-js",
+  "version": "0.1.0",
+  "homepage": "http://akirodic.com/components/three-js",
+  "authors": [
+    "Aleksandar Rodic <aleksandar.xyz@gmail.com>"
+  ],
+  "description": "HTML import for three.js",
+  "main": "three-js.html",
+  "keywords": [
+    "three.js",
+    "threejs",
+    "three",
+    "webgl",
+    "3D"
+  ],
+  "license": "Apache 2.0",
+  "dependencies": {
+    "three.js": "arodic/three.js#dev"
+  }
+}
