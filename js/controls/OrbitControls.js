@@ -24,8 +24,7 @@
 THREE.OrbitControls = function ( object, domElement ) {
 
 	this.object = object;
-	this.domElement = ( domElement !== undefined ) ? domElement : document.body;
-	this.domElement.setAttribute('tabindex', 0);
+	this.domElement = ( domElement !== undefined ) ? domElement : document;
 
 	// API
 
@@ -101,6 +100,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 	var dollyEnd = new THREE.Vector2();
 	var dollyDelta = new THREE.Vector2();
 
+	var theta;
+	var phi;
 	var phiDelta = 0;
 	var thetaDelta = 0;
 	var scale = 1;
@@ -160,7 +161,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		// get X column of matrix
 		panOffset.set( te[ 0 ], te[ 1 ], te[ 2 ] );
-		panOffset.multiplyScalar( - distance / scope.object.zoom );
+		panOffset.multiplyScalar( - distance );
 
 		pan.add( panOffset );
 
@@ -173,7 +174,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		// get Y column of matrix
 		panOffset.set( te[ 4 ], te[ 5 ], te[ 6 ] );
-		panOffset.multiplyScalar( distance / scope.object.zoom );
+		panOffset.multiplyScalar( distance );
 
 		pan.add( panOffset );
 
@@ -199,7 +200,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 			scope.panLeft( 2 * deltaX * targetDistance / element.clientHeight );
 			scope.panUp( 2 * deltaY * targetDistance / element.clientHeight );
 
-		} else if ( scope.object instanceof THREE.OrthographicCamera ) {
+		} else if ( scope.object.top !== undefined ) {
 
 			// orthographic
 			scope.panLeft( deltaX * (scope.object.right - scope.object.left) / element.clientWidth );
@@ -249,13 +250,13 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		// angle from z-axis around y-axis
 
-		var theta = Math.atan2( offset.x, offset.z );
+		theta = Math.atan2( offset.x, offset.z );
 
 		// angle from y-axis
 
-		var phi = Math.atan2( Math.sqrt( offset.x * offset.x + offset.z * offset.z ), offset.y );
+		phi = Math.atan2( Math.sqrt( offset.x * offset.x + offset.z * offset.z ), offset.y );
 
-		if ( this.autoRotate ) {
+		if ( this.autoRotate && state === STATE.NONE ) {
 
 			this.rotateLeft( getAutoRotationAngle() );
 
@@ -278,15 +279,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// restrict radius to be between desired limits
 		radius = Math.max( this.minDistance, Math.min( this.maxDistance, radius ) );
 
-		// zoom orthographic instead dolly.
-		if ( scope.object instanceof THREE.OrthographicCamera ) {
-			this.object.zoom *= scale;
-			this.object.updateProjectionMatrix();
-			radius = 1;
-			// TODO: hack to trigger update condition below
-			lastPosition.x += 1;
-		}
-
 		// move target to panned location
 		this.target.add( pan );
 
@@ -296,7 +288,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		// rotate offset back to "camera-up-vector-is-up" space
 		offset.applyQuaternion( quatInverse );
-
 
 		position.copy( this.target ).add( offset );
 
@@ -332,6 +323,18 @@ THREE.OrbitControls = function ( object, domElement ) {
 		this.object.position.copy( this.position0 );
 
 		this.update();
+
+	};
+
+	this.getPolarAngle = function () {
+
+		return phi;
+
+	};
+
+	this.getAzimuthalAngle = function () {
+
+		return theta
 
 	};
 
@@ -375,9 +378,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		}
 
-		document.addEventListener( 'mousemove', onMouseMove, false );
-		document.addEventListener( 'mouseup', onMouseUp, false );
-		scope.dispatchEvent( startEvent );
+		if ( state !== STATE.NONE ) {
+			document.addEventListener( 'mousemove', onMouseMove, false );
+			document.addEventListener( 'mouseup', onMouseUp, false );
+			scope.dispatchEvent( startEvent );
+		}
 
 	}
 
@@ -436,7 +441,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		}
 
-		scope.update();
+		if ( state !== STATE.NONE ) scope.update();
 
 	}
 
@@ -453,7 +458,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onMouseWheel( event ) {
 
-		if ( scope.enabled === false || scope.noZoom === true ) return;
+		if ( scope.enabled === false || scope.noZoom === true || state !== STATE.NONE ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -558,7 +563,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 		}
 
-		scope.dispatchEvent( startEvent );
+		if ( state !== STATE.NONE ) scope.dispatchEvent( startEvent );
 
 	}
 
@@ -659,7 +664,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	this.domElement.addEventListener( 'touchend', touchend, false );
 	this.domElement.addEventListener( 'touchmove', touchmove, false );
 
-	this.domElement.addEventListener( 'keydown', onKeyDown, false );
+	window.addEventListener( 'keydown', onKeyDown, false );
 
 	// force an update at start
 	this.update();
@@ -667,3 +672,4 @@ THREE.OrbitControls = function ( object, domElement ) {
 };
 
 THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+THREE.OrbitControls.prototype.constructor = THREE.OrbitControls;

@@ -1,41 +1,19 @@
-<!--
-Copyright 2012 Flux Factory, Inc.
--->
-
-
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="three.html">
+<link rel="import" href="../three.html">
 
 <!--
-Element wrapper for the THREE.WebGLRenderer (http://threejs.org/).
+Element wrapper for the THREE.WebGLRenderer (http://threejs.org/docs/#Reference/Renderers/WebGLRenderer).
 
-three-webglrenderer implements THREE.WebGLRenderer and makes it possible to use
-a single WebGL rendering context in multiple canvases/viewports. It is designed to work with
-three-viewport element but it can be used independently. Keep in mind that in order to render
-to multiple canvases, this element will migrate the WebGL canvas and copy its contents into a
-temporary Canvas2D. This is an expensive operation and shuld be avoided. In other words,
-if you have multiple instances of three-webglrenderer, avoid rendering simultaniously.
--->
+three-viewport-renderer implements THREE.WebGLRenderer and makes it possible to use
+a single WebGL rendering context in multiple [three-viewport](#three-viewport) elements.
 
-<!--
-@group Flux Elements
-@class three-webglrenderer
+@element three-viewport-renderer
 @blurb Element wrapper for the THREE.WebGLRenderer
-@homepage https://bitbucket.org/vannevartech/three-js
-@status alpha
 -->
-<polymer-element name="three-webglrenderer">
-  <template>
-    <style type="text/css">
-      :host > canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
 
-      }
-    </style>
+<polymer-element name="three-viewport-renderer">
+  <template>
+   <link rel="stylesheet" type="text/css" href="three-viewport-renderer.css">
+   <div id="outline" fit></div>
   </template>
   <script type="text/javascript">
     (function() {
@@ -45,22 +23,22 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
       var glEnabled = true;
       var gl;
 
-
       var ctxPerfNow = 0;
       var ctxPerfDelta = 1000;
       var ctxPerfAverage = 1000;
       var ctxPerfWarned;
 
       /**
-       * This function runs every time renderer migrates to another three-webglrenderer host
+       * This function runs every time renderer migrates to another three-viewport-renderer host
        * It is designed to detect if migration feature is overrused by the user.
        */
       var performanceCheck = function() {
+        if (ctxPerfWarned) return;
         ctxPerfDelta = performance.now() - ctxPerfNow;
         ctxPerfAverage = Math.min((ctxPerfAverage * 10 + ctxPerfDelta) / 11, 1000);
         ctxPerfNow = performance.now();
-        if (!ctxPerfWarned && ctxPerfAverage < 16) {
-          console.warn('Rendering with multiple renderers simultaniously is not recommended.');
+        if (ctxPerfAverage < 16) {
+          console.warn('Performance warning: rendering multiple viewports!');
           ctxPerfWarned = true;
         }
       };
@@ -77,9 +55,7 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
 
       Polymer({
         publish: {
-          /**
-           * THREE.WebGLRenderer attributes
-           */
+          // THREE.WebGLRenderer attributes
           autoClear: false,
           autoClearColor: false,
           autoClearDepth: false,
@@ -87,20 +63,10 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
           sortObjects: true,
           gammaInput: true,
           gammaOutput: true,
-
-          /**
-           * @attribute width
-           * @type number
-           * @default null
-           */
           width: null,
-          /**
-           * @attribute height
-           * @type number
-           * @default null
-           */
           height: null
         },
+
 
         observe: {
           'autoClear': 'update',
@@ -110,7 +76,7 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
           'sortObjects': 'update',
           'gammaInput': 'update',
           'gammaOutput': 'update',
-          'width height': 'resizeCanvas'
+          'width height': 'resizeCanvas',
         },
 
         ready: function() {
@@ -118,11 +84,11 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
           this.canvas = document.createElement('canvas');
           this.canvas.id = 'canvas';
           this.ctx = this.canvas.getContext('2d');
-          this.shadowRoot.appendChild(this.canvas);
+          this.shadowRoot.insertBefore(this.canvas, this.$.outline);
 
           // Detect WebGL support
           if (!Detector.webgl) {
-            this.shadowRoot.appendChild(Detector.getWebGLErrorMessage());
+            this.shadowRoot.insertBefore(Detector.getWebGLErrorMessage(), this.$.outline);
             glEnabled = false;
             return;
           }
@@ -130,7 +96,7 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
           // Create renderer for the first time.
           if (!renderer) {
             renderer = new THREE.WebGLRenderer({
-              antialias: true,
+              antialias: false,
               preserveDrawingBuffer: true,
               alpha: false
             });
@@ -146,6 +112,7 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
               renderer[method].apply(renderer, arguments);
             }
           }.bind(this));
+
         },
 
         // Set renderer parameters
@@ -162,11 +129,9 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
 
         // Resize canvas2D automatically
         resizeCanvas: function() {
-          this.canvas.width = this.width * window.devicePixelRatio;
-          this.canvas.height = this.height * window.devicePixelRatio;
-          this.canvas.style.width = this.width + 'px';
-          this.canvas.style.height = this.height + 'px';
-          renderer.setSize(this.width, this.height);
+          this.canvas.width = this.width;// * window.devicePixelRatio;
+          this.canvas.height = this.height;// * window.devicePixelRatio;
+          this.fire('canvas-resized');
         },
 
         /**
@@ -181,14 +146,27 @@ if you have multiple instances of three-webglrenderer, avoid rendering simultani
               currentHost.ctx.drawImage(renderer.domElement, 0, 0, currentHost.canvas.width, currentHost.canvas.height);
               gl.flush();
               currentHost.canvas.style.display = 'block';
+              // currentHost.classList.toggle('rendering', false);
             }
             currentHost = this;
-            renderer.setSize(this.width, this.height);
-            this.shadowRoot.appendChild(renderer.domElement);
+            this.setHostSize();
+            this.shadowRoot.insertBefore(renderer.domElement, this.$.outline);
             this.canvas.style.display = 'none';
+            this.classList.toggle('rendering', true);
+            requestAnimationFrame(function() {
+              this.classList.toggle('rendering', false);
+            }.bind(this));
             this.update();
           }
-        }
+          this.setHostSize();
+        },
+        setHostSize: function() {
+          if (this.currentWidth != this.width || this.currentHeight != this.height) {
+            renderer.setSize(this.width, this.height);
+            this.currentWidth = this.width;
+            this.currentHeight = this.height;
+          }
+        },
 
       });
 

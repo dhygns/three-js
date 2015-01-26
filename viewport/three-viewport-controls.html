@@ -1,0 +1,39 @@
+<link rel="import" href="../three.html">
+
+<!--
+Viewport camera controller
+
+@element three-viewport-controls
+@blurb Viewport camera controller
+-->
+
+<polymer-element name="three-viewport-controls">
+  <template></template>
+  <script type="text/javascript">
+
+      Polymer({
+        publish: {
+          camera: null,
+          enabled: true,
+          controls: null
+        },
+        cameraChanged: function() {
+          // TODO: add dispose to controls
+          // TODO: improve editor controls
+          this.controls = new THREE.EditorControls(this.camera, this.parentNode.host);
+          this.controls.addEventListener('change', function() {
+            this.fire('controls-changed', this);
+          }.bind(this));
+
+          if (this.camera instanceof THREE.OrthographicCamera) {
+            // TODO: unhack
+            this.controls.rotate = function() {};
+          }
+        },
+        enabledChanged: function() {
+          this.controls.enabled = this.enabled;
+        }
+
+      });
+  </script>
+</polymer-element>

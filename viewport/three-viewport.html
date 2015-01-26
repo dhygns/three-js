@@ -1,0 +1,343 @@
+<link rel="import" href="../three.html">
+
+<link rel="import" href="three-viewport-renderer.html">
+<link rel="import" href="three-viewport-camera.html">
+<link rel="import" href="three-viewport-controls.html">
+<link rel="import" href="three-viewport-helpers.html">
+
+<!--
+Viewport element with basic camera controls and tool API.
+
+three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [three-camera](#three-camera), [three-controls](#three-controls) and [three-helpers](#three-helpers)
+
+@element three-viewport
+@blurb Viewport element with basic camera controls and tool API
+-->
+
+<polymer-element name="three-viewport" tabindex="0">
+  <template>
+    <link rel="stylesheet" type="text/css" href="three-viewport.css">
+    <three-viewport-camera
+        view="{{view}}"
+        camera="{{camera}}"
+        width="{{width}}"
+        height="{{height}}"
+        on-camera-changed="{{renderLater}}">
+    </three-viewport-camera>
+    <three-viewport-controls id="controls"
+        camera="{{camera}}"
+        scene="{{scene}}"
+        width="{{width}}"
+        height="{{height}}"
+        viewport="{{}}"
+        on-controls-changed="{{renderLater}}">
+    </three-viewport-controls>
+    <three-viewport-helpers
+        id="helpers"
+        view="{{view}}"
+        upAxis="{{upAxis}}"
+        showGrid="{{showGrid}}"
+        showAxis="{{showAxis}}"
+        gridSize="{{gridSize}}"
+        gridWidth="{{gridWidth}}"
+        gridColor1="{{gridColor1}}"
+        gridColor2="{{gridColor2}}"
+        on-helper-changed="{{renderLater}}">
+    </three-viewport-helpers>
+    <three-viewport-renderer id="renderer"
+        width="{{width}}"
+        height="{{height}}">
+    </three-viewport-renderer>
+    <div id="outline"></div>
+  </template>
+  <script type="text/javascript">
+
+    (function() {
+
+      var viewportEvents = [
+        'Down',
+        'Up',
+        'TrackStart',
+        'Track',
+        'TrackEnd',
+        'Tap',
+        'MouseMove',
+        'KeyDown',
+        'KeyUp'
+      ];
+      var faceKeys = ['a', 'b', 'c'];
+
+      // temporary variables
+      var x, y, intersects;
+      var pointerVector = new THREE.Vector2();
+      var shortestDistance, closestVert, distance, tempVert;
+      var raycaster = new THREE.Raycaster();
+
+      Polymer({
+        publish: {
+          /**
+           * Scene to be rendered in this viewport.
+           * @attribute scene
+           * @type object
+           * @default new THREE.Scene()
+           */
+          scene: null,
+          /**
+           * Scene helpers to be rendered in this viewport.
+           * @attribute helperScene
+           * @type object
+           * @default new THREE.Scene()
+           */
+          helperScene: null,
+          /**
+           * Camera to be rendered with.
+           * Any instance of `THREE.Camera` can be set here.
+           * @attribute camera
+           * @type object
+           */
+          camera: null,
+          /**
+           * Background color
+           * @attribute clearColor
+           * @type object
+           * @default new THREE.Color(0xCCCCCC)
+           */
+          clearColor: null,
+          /**
+           * Default camera views
+           * Available settings: persp, top, bottom, front, back, left, right
+           * Changind this attribute will change the 'camera' attribute and grid orientation.
+           * @attribute view
+           * @type string
+           * @default null
+           */
+          view: null,
+
+          /**
+           * Determines if scene helpers are rendered.
+           * @attribute showHelpers
+           * @type boolean
+           * @default true
+           */
+          showHelpers: true,
+          /**
+           * Tool to recieve pointer event callbacks from this element.
+           * @attribute tool
+           * @type element
+           */
+          tool: null,
+          /**
+           * three-viewport-helpers attributes
+           * See three-viewport-helpers for documentation
+           */
+          upAxis: 'y',
+          showGrid: true,
+          showAxis: true,
+          gridSize: 10,
+          gridWidth: 10,
+          gridColor1: null,
+          gridColor2: null
+        },
+
+        observe: {
+          'clearColor.r clearColor.g clearColor.b': 'renderLater',
+          'showHelpers': 'renderLater',
+          'scene helperScene': 'upAxisChanged'
+        },
+
+        eventDelegates: {
+          'canvas-resized': 'renderLater',
+          'focus': 'renderLater',
+          'mousemove': 'handleMouseMove'
+        },
+
+        rendered: false,
+        width: 0,
+        height: 0,
+        pointerHandlers: null,
+
+        ready: function() {
+          this._render = this.render.bind(this);
+          this._addRaycastDataToEvent = this.addRaycastDataToEvent.bind(this);
+          this.pointerHandlers = {};
+          if (!this.scene) this.scene = new THREE.Scene();
+          if (!this.helperScene) this.helperScene = new THREE.Scene();
+          if (!this.clearColor) this.clearColor = new THREE.Color(0xC5CDCC);
+          if (!this.gridColor1) this.gridColor1 = new THREE.Color(0xC5CDCC);
+          if (!this.gridColor2) this.gridColor2 = new THREE.Color(0xC5CDCC);
+        },
+
+        attached: function() {
+          this.isAttached = true;
+          this._resizeHandler = this.resizeHandler.bind(this);
+          this._resizeHandler();
+          this.addListeners();
+        },
+        detached: function() {
+          this.isAttached = false;
+          this.removeListeners();
+        },
+        resizeHandler: function(event) {
+          if (!this.isAttached) return;
+          requestAnimationFrame(this._resizeHandler);
+          this._rect = this.getBoundingClientRect();
+          this.width = Math.floor(this._rect.width);
+          this.height = Math.floor(this._rect.height);
+        },
+
+        render: function() {
+          if (!this.rendered) {
+            this.$.renderer.setClearColor(this.clearColor);
+            this.$.renderer.clear();
+            this.camera.updateProjectionMatrix();
+            this.$.renderer.render(this.scene, this.camera);
+            if (this.showHelpers) {
+              this.$.renderer.render(this.helperScene, this.camera);
+              this.$.renderer.render(this.$.helpers.scene, this.camera);
+            }
+            this.rendered = true;
+            requestAnimationFrame(function() {this.rendered = false;}.bind(this));
+            this.fire('viewport-rendered', this);
+          }
+        },
+        renderLater: function() {
+          requestAnimationFrame(this._render);
+        },
+
+        upAxisChanged: function() {
+          // TODO: consider restoring rotation on scene change
+          if (this.upAxis == 'x') {
+            this.scene.rotation.set(0, 0, 0);
+            this.helperScene.rotation.set(0, 0, 0);
+            this.$.helpers.scene.rotation.set(0, 0, 0);
+          } else if (this.upAxis == 'z') {
+            this.scene.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+            this.helperScene.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+            this.$.helpers.scene.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+          }
+        },
+
+        addListeners: function() {
+          var scope = this;
+          for (var i = viewportEvents.length; i--;) {
+            (function(i) {
+              var eventName = viewportEvents[i].toLowerCase();
+              scope.pointerHandlers[eventName] = function(event) {
+                // Use controls if alt is pressed or no tool is set.
+                if (event.altKey || !scope.tool) {
+                  scope.$.controls.enabled = true;
+                } else if (scope.tool) {
+                  scope.$.controls.enabled = false;
+                  var callbackName = 'on' + viewportEvents[i];
+                  if (scope.tool.constructor.prototype.hasOwnProperty(callbackName) ||
+                      Object.getPrototypeOf(scope.tool).hasOwnProperty(callbackName) ||
+                      scope.tool.hasOwnProperty(callbackName)) {
+                    if (eventName.search("key") == -1) {
+                      scope._addRaycastDataToEvent(event);
+                    }
+                    scope.tool[callbackName](event);
+                    scope.renderLater();
+                  }
+                }
+              };
+              PolymerGestures.addEventListener(scope, eventName, scope.pointerHandlers[eventName]);
+            })(i);
+          }
+        },
+        removeListeners: function() {
+          var scope = this;
+          for (var i = viewportEvents.length; i--;) {
+            (function(i) {
+              var eventName = viewportEvents[i].toLowerCase();
+              PolymerGestures.removeEventListener(scope, eventName, scope.pointerHandlers[eventName]);
+              delete scope.pointerHandlers[eventName];
+            })(i);
+          }
+        },
+        /**
+         * @method addRaycastDataToEvent
+         * @param {Object} event Pointer event
+         * Adds followind data to event:
+         *
+         * event.pointerVector {Object} THREE.Vector2 pointer position in view space
+         * event.pointOnPlane {Object} THREE.Vector3 point on grid (snaps to grid if shift key is pressed)
+         * event.pointOnMesh {Object} THREE.Vector3 point on mesh (snaps to vertex if shift key is pressed)
+         * event.object {Object} THREE.Object3D closest intersected object
+         */
+        addRaycastDataToEvent: function(event) {
+          x = (event.clientX !== undefined) ? event.clientX : event.x;
+          y = (event.clientY !== undefined) ? event.clientY : event.y;
+          x = (x - this._rect.left) / this._rect.width * 2 - 1;
+          y = - (y - this._rect.top) / this._rect.height * 2 + 1;
+          pointerVector.set(x, y);
+          event.pointerVector = pointerVector;
+          raycaster.setFromCamera(pointerVector, this.camera);
+
+          // Get point on plane
+          intersects = raycaster.intersectObjects([this.$.helpers.plane], true);
+          if (intersects.length) {
+            if (event.shiftKey) {
+              intersects[0].point.x = Math.round(intersects[0].point.x / this.gridSize) * this.gridSize;
+              intersects[0].point.y = Math.round(intersects[0].point.y / this.gridSize) * this.gridSize;
+              intersects[0].point.z = Math.round(intersects[0].point.z / this.gridSize) * this.gridSize;
+              if (intersects[0].point.x == -0) intersects[0].point.x = 0; 
+              if (intersects[0].point.y == -0) intersects[0].point.y = 0; 
+              if (intersects[0].point.z == -0) intersects[0].point.z = 0; 
+            }
+            event.pointOnPlane = intersects[0].point;
+          }
+
+          // Get point on mesh
+          // TODO: ignore invisible
+          intersects = raycaster.intersectObjects([this.scene], true);
+          if (intersects.length) {
+            event.pointOnMesh = intersects[0].point;
+            event.object = intersects[0].object;
+            // TODO: implement helpers
+            shortestDistance = Infinity;
+            closestVert = undefined;
+            distance = undefined;
+            // TODO: track no modifier keys
+            if (event.shiftKey) {
+              faceKeys.forEach(function(faceKey) {
+                if (intersects[0].object.geometry instanceof THREE.Geometry) {
+                  tempVert = intersects[0].object.geometry.vertices[intersects[0].face[faceKey]].clone()
+                } else if (intersects[0].object.geometry instanceof THREE.BufferGeometry) {
+                  // TODO: use array buffer for lookup?
+                  tempVert = new THREE.Vector3(
+                    intersects[0].object.geometry.attributes.position.array[intersects[0].face[faceKey]*3],
+                    intersects[0].object.geometry.attributes.position.array[intersects[0].face[faceKey]*3+1],
+                    intersects[0].object.geometry.attributes.position.array[intersects[0].face[faceKey]*3+2]
+                  );
+                }
+                tempVert.applyMatrix4(event.object.matrixWorld);
+                distance = tempVert.distanceTo(event.pointOnMesh);
+                if (distance < shortestDistance) {
+                  shortestDistance = distance;
+                  closestVert = tempVert;
+                }
+              });
+              event.pointOnMesh = closestVert;
+            }
+          }
+        },
+
+        focusObject: function(object) {
+          requestAnimationFrame(function() {
+              object.updateMatrixWorld();
+              if (object.geometry) {
+                  object.geometry.computeBoundingSphere();
+                  this.$.controls.controls.focus(object, true);
+                  this.renderLater();
+              }
+          }.bind(this));
+        },
+
+        handleMouseMove: function(event) {
+          this.fire('viewport-hover', this);
+        },
+      });
+
+    })();
+  </script>
+</polymer-element>
