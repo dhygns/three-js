@@ -18,16 +18,50 @@ Viewport camera controller
 
       var normalMatrix = new THREE.Matrix3();
 
-      var pointer = new THREE.Vector2();
-      var pointerOld = new THREE.Vector2();
-      var pointerDelta = new THREE.Vector2();
+      var pointers = [new THREE.Vector2(), new THREE.Vector2()];
+      var pointersOld = [new THREE.Vector2(), new THREE.Vector2()];
+      var pointersDelta = [new THREE.Vector2(), new THREE.Vector2()];
 
-      var getPointer = function(event) {
+      var setPointers = function(event) {
         var parentRect = event.path[0].getBoundingClientRect();
-        return new THREE.Vector2(
-          (event.clientX - parentRect.left) / parentRect.width * 2 - 1,
-          (event.clientY - parentRect.top) / parentRect.height * 2 - 1
-        );
+        if (event.touches) {
+          switch (event.touches.length) {
+            case 1:
+              pointers[0].set(
+                (event.touches[0].pageX - parentRect.left) / parentRect.width * 2 - 1,
+                (event.touches[0].pageY - parentRect.top) / parentRect.height * 2 - 1
+              );
+              pointers[1].set(
+                (event.touches[0].pageX - parentRect.left) / parentRect.width * 2 - 1,
+                (event.touches[0].pageY - parentRect.top) / parentRect.height * 2 - 1
+              );
+              break;
+            case 2:
+              pointers[0].set(
+                (event.touches[0].pageX - parentRect.left) / parentRect.width * 2 - 1,
+                (event.touches[0].pageY - parentRect.top) / parentRect.height * 2 - 1
+              );
+              pointers[1].set(
+                (event.touches[1].pageX - parentRect.left) / parentRect.width * 2 - 1,
+                (event.touches[1].pageY - parentRect.top) / parentRect.height * 2 - 1
+              );
+              break;
+          }
+        } else {
+          pointers[0].set(
+            (event.clientX - parentRect.left) / parentRect.width * 2 - 1,
+            (event.clientY - parentRect.top) / parentRect.height * 2 - 1
+          );
+        }
+
+      };
+
+      var getClosestPoint = function(point, pointArray) {
+        var closestPoint = pointArray[0];
+        for (var i in pointArray) {
+          if (closestPoint.distanceTo(point) > pointArray[i].distanceTo(point)) closestPoint = pointArray[i];
+        }
+        return closestPoint;
       };
 
       Polymer({
@@ -40,6 +74,7 @@ Viewport camera controller
         },
 
         rotate: function(pointerDelta) {
+          if (this.camera instanceof THREE.OrthographicCamera) return;
           vector.copy(this.camera.position).sub(this.camera._target);
           var theta = Math.atan2(vector.x, vector.z);
           var phi = Math.atan2(Math.sqrt(vector.x * vector.x + vector.z * vector.z), vector.y);
@@ -59,9 +94,9 @@ Viewport camera controller
           vector.set(-pointerDelta.x, pointerDelta.y, 0)
           var distance = this.camera.position.distanceTo(this.camera._target);
           if (this.camera instanceof THREE.PerspectiveCamera) {
-            var fovFactor = distance * Math.tan((this.camera.fov) * Math.PI / 180.0);
+            var fovFactor = distance * Math.tan((this.camera.fov / 2) * Math.PI / 180.0);
             vector.multiplyScalar(fovFactor);
-            vector.y /= this.camera.aspect;
+            vector.x *= this.camera.aspect;
           } else if (this.camera instanceof THREE.OrthographicCamera) {
             vector.x *= (this.camera.right - this.camera.left) / 2;
             vector.y *= (this.camera.top - this.camera.bottom) / 2;
@@ -72,6 +107,7 @@ Viewport camera controller
           this.fire('three-viewport-controls-changed');
         },
         zoom: function(pointerDelta) {
+
           if (this.camera instanceof THREE.PerspectiveCamera) {
             vector.set(0, 0, pointerDelta.y);
             var distance = this.camera.position.distanceTo(this.camera._target);
@@ -140,22 +176,22 @@ Viewport camera controller
         onMouseDown: function(event) {
           if (this.enabled === false) return;
           state = event.button;
-          pointerOld.copy(getPointer(event));
+          setPointers(event);
+          pointersOld[0].copy(pointers[0]);
         },
         onMouseMove: function(event) {
           if (this.enabled === false || state === STATE.NONE) return;
 
-          pointer.copy(getPointer(event));
-          pointerDelta.subVectors(pointer, pointerOld);
-          pointerOld.copy(pointer);
+          setPointers(event);
+          pointersDelta[0].subVectors(pointers[0], pointersOld[0]);
+          pointersOld[0].copy(pointers[0]);
 
           if (state === STATE.ROTATE) {
-            if (this.camera instanceof THREE.OrthographicCamera) return;
-            this.rotate(pointerDelta);
+            this.rotate(pointersDelta[0]);
           } else if (state === STATE.ZOOM) {
-            this.zoom(pointerDelta);
+            this.zoom(pointersDelta[0]);
           } else if (state === STATE.PAN) {
-            this.pan(pointerDelta);
+            this.pan(pointersDelta[0]);
           }
         },
         onMouseUp: function(event) {
@@ -163,6 +199,52 @@ Viewport camera controller
         },
         onMouseOut: function(event) {
           state = STATE.NONE;
+        },
+
+        onTouchStart: function(event) {
+          if (this.enabled === false) return;
+          setPointers(event);
+          pointersOld[0].copy(pointers[0]);
+          pointersOld[1].copy(pointers[1]);
+        },
+        onTouchMove: function(event) {
+          if (this.enabled === false) return;
+          setPointers(event);
+          switch (event.touches.length) {
+            case 1:
+              pointersDelta[0].subVectors(pointers[0], getClosestPoint(pointers[0], pointersOld));
+              pointersDelta[1].subVectors(pointers[1], getClosestPoint(pointers[1], pointersOld));
+              if (this.camera instanceof THREE.PerspectiveCamera) {
+                this.rotate(pointersDelta[0]);
+              } else if (this.camera instanceof THREE.OrthographicCamera) {
+                this.pan(pointersDelta[0]);
+              }
+              break;
+            case 2:
+              pointersDelta[0].subVectors(pointers[0], getClosestPoint(pointers[0], pointersOld));
+              pointersDelta[1].subVectors(pointers[1], getClosestPoint(pointers[1], pointersOld));
+              var prevDistance = pointersOld[0].distanceTo(pointersOld[1]);
+              var distance = pointers[0].distanceTo(pointers[1]);
+              if (prevDistance) {
+                this.zoom(new THREE.Vector2(0, prevDistance - distance));
+                this.pan(pointersDelta[0].clone().add(pointersDelta[1]).multiplyScalar(0.5));
+              }
+              break;
+          }
+          pointersOld[0].copy(pointers[0]);
+          pointersOld[1].copy(pointers[1]);
+        },
+
+        onMouseWheel: function(event) {
+          if (this.enabled === false) return;
+          event.preventDefault();
+          var delta = 0;
+          if (event.wheelDelta) { // WebKit / Opera / Explorer 9
+            delta = - event.wheelDelta;
+          } else if (event.detail) { // Firefox // TODO
+            delta = event.detail * 10;
+          }
+          this.zoom(new THREE.Vector2(0, delta / 1000));
         }
 
       });
