@@ -31,7 +31,7 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
         width="{{width}}"
         height="{{height}}"
         viewport="{{}}"
-        on-three-viewport-controls-changed="{{renderLater}}">
+        on-three-viewport-controls-changed="{{saveCameraStates}}">
     </three-viewport-controls>
     <three-viewport-helpers
         id="helpers"
@@ -134,6 +134,8 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
            * @type element
            */
           tool: null,
+          // 
+          cameraStates: '',
           /**
            * three-viewport-helpers attributes
            * See three-viewport-helpers for documentation
@@ -372,50 +374,39 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
 
         handleMouseMove: function(event) {
           this.fire('three-viewport-hover', this);
-          this.getCameraStates();
         },
 
-        /**
-        * Sets camera states
-        * @method getCameraStates
-        * @param  {Object} states camera states
-        */
-        setCameraStates: function(states) {
-          for (var view in states) {
-            var camera = this.$.cameras.cameras[view];
-            camera.position.x = states[view].positionx;
-            camera.position.y = states[view].positiony;
-            camera.position.z = states[view].positionz;
-            camera.rotation.x = states[view].rotationx;
-            camera.rotation.y = states[view].rotationy;
-            camera.rotation.z = states[view].rotationz;
-            camera._target.x = states[view].targetx;
-            camera._target.y = states[view].targety;
-            camera._target.z = states[view].targetz;
-          }
-        },
-
-        /**
-        * Returns an object with current camera states
-        * @method getCameraStates
-        */
-        getCameraStates: function() {
-          var states = {};
+        saveCameraStates: function() {
+          this.cameraStates = {};
           for (var view in this.$.cameras.cameras) {
             var camera = this.$.cameras.cameras[view];
-            states[view] = {
-              positionx: camera.position.x,
-              positiony: camera.position.y,
-              positionz: camera.position.z,
-              rotationx: camera.rotation.x,
-              rotationy: camera.rotation.y,
-              rotationz: camera.rotation.z,
-              targetx: camera._target.x,
-              targety: camera._target.y,
-              targetz: camera._target.z
+            this.cameraStates[view] = {
+              px: camera.position.x,
+              py: camera.position.y,
+              pz: camera.position.z,
+              rx: camera.rotation.x,
+              ry: camera.rotation.y,
+              rz: camera.rotation.z,
+              tx: camera._target.x,
+              ty: camera._target.y,
+              tz: camera._target.z
             };
           }
-          return states;
+          this.renderLater();
+        },
+        cameraStatesChanged: function(previousCameraStates) {
+          for (var view in this.cameraStates) {
+            var camera = this.$.cameras.cameras[view];
+            camera.position.x = this.cameraStates[view].px;
+            camera.position.y = this.cameraStates[view].py;
+            camera.position.z = this.cameraStates[view].pz;
+            camera.rotation.x = this.cameraStates[view].rx;
+            camera.rotation.y = this.cameraStates[view].ry;
+            camera.rotation.z = this.cameraStates[view].rz;
+            camera._target.x = this.cameraStates[view].tx;
+            camera._target.y = this.cameraStates[view].ty;
+            camera._target.z = this.cameraStates[view].tz;
+          }
         }
 
       });
