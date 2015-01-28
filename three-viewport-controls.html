@@ -1,0 +1,171 @@
+<link rel="import" href="three.html">
+
+<!--
+Viewport camera controller
+
+@element three-viewport-controls
+@blurb Viewport camera controller
+-->
+
+<polymer-element name="three-viewport-controls">
+  <script>
+  (function() {
+
+      var vector = new THREE.Vector3();
+
+      var STATE = {NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2};
+      var state = STATE.NONE;
+
+      var normalMatrix = new THREE.Matrix3();
+
+      var pointer = new THREE.Vector2();
+      var pointerOld = new THREE.Vector2();
+      var pointerDelta = new THREE.Vector2();
+
+      var getPointer = function(event) {
+        var parentRect = event.path[0].getBoundingClientRect();
+        return new THREE.Vector2(
+          (event.clientX - parentRect.left) / parentRect.width * 2 - 1,
+          (event.clientY - parentRect.top) / parentRect.height * 2 - 1
+        );
+      };
+
+      Polymer({
+        publish: {
+          camera: null,
+          enabled: true,
+        },
+        cameraChanged: function() {
+          this.camera._target = this.camera._target || new THREE.Vector3();
+        },
+
+        rotate: function(pointerDelta) {
+          vector.copy(this.camera.position).sub(this.camera._target);
+          var theta = Math.atan2(vector.x, vector.z);
+          var phi = Math.atan2(Math.sqrt(vector.x * vector.x + vector.z * vector.z), vector.y);
+          theta -= pointerDelta.x;
+          phi -= pointerDelta.y;
+          var EPS = 0.000001;
+          phi = Math.max(EPS, Math.min(Math.PI - EPS, phi));
+          var radius = vector.length();
+          vector.x = radius * Math.sin(phi) * Math.sin(theta);
+          vector.y = radius * Math.cos(phi);
+          vector.z = radius * Math.sin(phi) * Math.cos(theta);
+          this.camera.position.copy(this.camera._target).add(vector);
+          this.camera.lookAt(this.camera._target);
+          this.fire('three-viewport-controls-changed');
+        },
+        pan: function(pointerDelta) {
+          vector.set(-pointerDelta.x, pointerDelta.y, 0)
+          var distance = this.camera.position.distanceTo(this.camera._target);
+          if (this.camera instanceof THREE.PerspectiveCamera) {
+            var fovFactor = distance * Math.tan((this.camera.fov) * Math.PI / 180.0);
+            vector.multiplyScalar(fovFactor);
+            vector.y /= this.camera.aspect;
+          } else if (this.camera instanceof THREE.OrthographicCamera) {
+            vector.x *= (this.camera.right - this.camera.left) / 2;
+            vector.y *= (this.camera.top - this.camera.bottom) / 2;
+          }
+          vector.applyMatrix3(normalMatrix.getNormalMatrix(this.camera.matrix));
+          this.camera.position.add(vector);
+          this.camera._target.add(vector);
+          this.fire('three-viewport-controls-changed');
+        },
+        zoom: function(pointerDelta) {
+          if (this.camera instanceof THREE.PerspectiveCamera) {
+            vector.set(0, 0, pointerDelta.y);
+            var distance = this.camera.position.distanceTo(this.camera._target);
+            vector.multiplyScalar(distance);
+            if (vector.length() > distance) return;
+            vector.applyMatrix3(normalMatrix.getNormalMatrix(this.camera.matrix));
+            this.camera.position.add(vector);
+          } else if (this.camera instanceof THREE.OrthographicCamera) {
+            this.camera.top *= 1 + pointerDelta.y;
+            this.camera.right *= 1 + pointerDelta.y;
+            this.camera.bottom *= 1 + pointerDelta.y;
+            this.camera.left *= 1 + pointerDelta.y;
+          }
+          this.fire('three-viewport-controls-changed');
+        },
+        focus: function(target, frame) {
+
+          target.updateMatrixWorld();
+
+          var scale = new THREE.Vector3();
+          var offset = this.camera.position.clone().sub(this.camera._target);
+
+          target.matrixWorld.decompose(this.camera._target, new THREE.Quaternion(), scale);
+          scale = (scale.x + scale.y + scale.z) / 3;
+
+          if (target.geometry) {
+              target.geometry.computeBoundingSphere();
+              this.camera._target.add(target.geometry.boundingSphere.center.clone().multiplyScalar(scale));
+          }
+          
+          if (this.camera instanceof THREE.PerspectiveCamera) {
+            this.camera.lookAt(this.camera._target);
+            
+            if (frame && target.geometry) {
+              var radius = target.geometry.boundingSphere.radius * (scale);
+              var pos = this.camera.position.clone().sub(this.camera._target).normalize().multiplyScalar(radius * 2);
+              this.camera.position.copy(this.camera._target).add(pos);
+            }
+          
+          } else if (this.camera instanceof THREE.OrthographicCamera) {
+            this.camera.position.copy(this.camera._target).add(offset);
+
+            if (frame && target.geometry) {
+              var radius = target.geometry.boundingSphere.radius * (scale);
+              var cw = this.camera.right - this.camera.left;
+              var ch = this.camera.top - this.camera.bottom;
+              var aspect = cw / ch;
+              if (aspect < 1) {
+                this.camera.top = radius / aspect;
+                this.camera.right = radius;
+                this.camera.bottom = -radius / aspect;
+                this.camera.left = -radius;
+              } else {
+                this.camera.top = radius;
+                this.camera.right = radius * aspect;
+                this.camera.bottom = -radius;
+                this.camera.left = -radius * aspect;
+              }
+            }
+
+          }
+
+          this.fire('three-viewport-controls-changed');
+        },
+
+        onMouseDown: function(event) {
+          if (this.enabled === false) return;
+          state = event.button;
+          pointerOld.copy(getPointer(event));
+        },
+        onMouseMove: function(event) {
+          if (this.enabled === false || state === STATE.NONE) return;
+
+          pointer.copy(getPointer(event));
+          pointerDelta.subVectors(pointer, pointerOld);
+          pointerOld.copy(pointer);
+
+          if (state === STATE.ROTATE) {
+            if (this.camera instanceof THREE.OrthographicCamera) return;
+            this.rotate(pointerDelta);
+          } else if (state === STATE.ZOOM) {
+            this.zoom(pointerDelta);
+          } else if (state === STATE.PAN) {
+            this.pan(pointerDelta);
+          }
+        },
+        onMouseUp: function(event) {
+          state = STATE.NONE;
+        },
+        onMouseOut: function(event) {
+          state = STATE.NONE;
+        }
+
+      });
+  }());
+  </script>
+</polymer-element>

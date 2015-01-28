@@ -17,6 +17,7 @@
   "ignore": [],
   "dependencies": {
     "polymer": "Polymer/polymer#~0.5.2",
-    "core-signals": "Polymer/core-signals#~0.5.2"
+    "core-signals": "Polymer/core-signals#~0.5.2",
+    "io-bundle": "arodic/io-bundle#~0.6.2"
   }
 }

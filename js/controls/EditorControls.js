@@ -5,14 +5,14 @@
  * @author WestLangley / http://github.com/WestLangley
  */
 
-THREE.EditorControls = function ( object, domElement ) {
+THREE.EditorControls = function ( object, domElement, center ) {
 
 	domElement = ( domElement !== undefined ) ? domElement : document;
 
 	// API
 
 	this.enabled = true;
-	this.center = new THREE.Vector3();
+	this.center = center || new THREE.Vector3();
 
 	// internals
 
@@ -22,7 +22,6 @@ THREE.EditorControls = function ( object, domElement ) {
 	var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
 	var state = STATE.NONE;
 
-	var center = this.center;
 	var normalMatrix = new THREE.Matrix3();
 	var pointer = new THREE.Vector2();
 	var pointerOld = new THREE.Vector2();

@@ -1,4 +1,4 @@
-<link rel="import" href="../three.html">
+<link rel="import" href="three.html">
 
 <!--
 Manages viewport cameras.
@@ -39,7 +39,6 @@ Manages viewport cameras.
           'width height camera': 'updateCamera'
         },
 
-
         ready: function() {
           this.cameras = {
             'persp': new THREE.PerspectiveCamera(60, 1, 0.001, 1000),
@@ -50,8 +49,11 @@ Manages viewport cameras.
             'front': new THREE.OrthographicCamera(100, -100, 100, -100, -1000, 1000),
             'back': new THREE.OrthographicCamera(100, -100, 100, -100, -1000, 1000)
           };
+          for (var cam in this.cameras) {
+            this.cameras[cam]._target = new THREE.Vector3();
+          }
           this.cameras['persp'].position.set(40, 40, 40);
-          this.cameras['persp'].lookAt(new THREE.Vector3());
+          this.cameras['persp'].lookAt(this.cameras['persp']._target);
           this.cameras['front'].position.set(0, 0, 100);
           this.cameras['back'].rotation.set(0, Math.PI, 0);
           this.cameras['back'].position.set(0, 0, -100);
@@ -70,25 +72,13 @@ Manages viewport cameras.
         viewChanged: function() {
           switch (this.view) {
             case 'top':
-              this.camera = this.cameras['top'];
-              break;
             case 'bottom':
-              this.camera = this.cameras['bottom'];
-              break;
             case 'left':
-              this.camera = this.cameras['left'];
-              break;
             case 'right':
-              this.camera = this.cameras['right'];
-              break;
             case 'front':
-              this.camera = this.cameras['front'];
-              break;
             case 'back':
-              this.camera = this.cameras['back'];
-              break;
             case 'persp':
-              this.camera = this.cameras['persp'];
+              this.camera = this.cameras[this.view];
               break;
           }
         },
@@ -109,11 +99,11 @@ Manages viewport cameras.
           /**
            * Fired when camera is changed
            *
-           * @event camera-changed
+           * @event three-viewport-camera-changed
            * @param {Object} detail
            * @param {Object} detail.camera camera
            */
-          this.fire('camera-changed', this.camera);
+          this.fire('three-viewport-camera-changed', this.camera);
         }
 
       });

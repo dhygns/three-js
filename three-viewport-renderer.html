@@ -1,7 +1,9 @@
-<link rel="import" href="../three.html">
+<link rel="import" href="three.html">
 
 <!--
 Element wrapper for the THREE.WebGLRenderer (http://threejs.org/docs/#Reference/Renderers/WebGLRenderer).
+
+It manages GL rendering context across multiple instances of three-viewport.
 
 three-viewport-renderer implements THREE.WebGLRenderer and makes it possible to use
 a single WebGL rendering context in multiple [three-viewport](#three-viewport) elements.
@@ -76,7 +78,7 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
           'sortObjects': 'update',
           'gammaInput': 'update',
           'gammaOutput': 'update',
-          'width height': 'resizeCanvas',
+          'width height': 'resizeCanvas'
         },
 
         ready: function() {
@@ -146,7 +148,8 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
               currentHost.ctx.drawImage(renderer.domElement, 0, 0, currentHost.canvas.width, currentHost.canvas.height);
               gl.flush();
               currentHost.canvas.style.display = 'block';
-              // currentHost.classList.toggle('rendering', false);
+              currentHost.currentWidth = null;
+              currentHost.currentHeight = null;
             }
             currentHost = this;
             this.setHostSize();
