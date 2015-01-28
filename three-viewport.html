@@ -134,8 +134,13 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
            * @type element
            */
           tool: null,
-          // 
-          cameraStates: '',
+          /**
+           * Map of camera states.
+           * @attribute cameraStates
+           * @type object
+           * @default null
+           */
+          cameraStates: null,
           /**
            * three-viewport-helpers attributes
            * See three-viewport-helpers for documentation
@@ -321,7 +326,7 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
           // Get point on mesh
           intersect = undefined;
           intersects = raycaster.intersectObjects([this.scene], true);
-          intersects.some(function(i){
+          intersects.some(function(i) {
             if (i.object.visible) {
               intersect = i; return;
             }
@@ -342,9 +347,9 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
                 } else if (intersect.object.geometry instanceof THREE.BufferGeometry) {
                   // TODO: use array buffer for lookup?
                   tempVert = new THREE.Vector3(
-                    intersect.object.geometry.attributes.position.array[intersect.face[faceKey]*3],
-                    intersect.object.geometry.attributes.position.array[intersect.face[faceKey]*3+1],
-                    intersect.object.geometry.attributes.position.array[intersect.face[faceKey]*3+2]
+                    intersect.object.geometry.attributes.position.array[intersect.face[faceKey] * 3],
+                    intersect.object.geometry.attributes.position.array[intersect.face[faceKey] * 3 + 1],
+                    intersect.object.geometry.attributes.position.array[intersect.face[faceKey] * 3 + 2]
                   );
                 }
                 tempVert.applyMatrix4(event.object.matrixWorld);
@@ -366,7 +371,7 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
           if (!object) return;
           requestAnimationFrame(function() {
               object.updateMatrixWorld();
-              this.$.controls.focus(object, true);
+              this.$.controls.focusObject(object, true);
               this.renderLater();
               if (object.geometry) {
               }
