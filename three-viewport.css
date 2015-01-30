@@ -7,21 +7,33 @@
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   -ms-box-sizing: border-box;
-  pointer-events: none;
+  cursor: crosshair;
   position: relative;
   display: block;
 }
-:host > canvas {
+:host > #outline {
+  pointer-events: none;
+}
+:host > #outline,
+:host > #renderer {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
 }
-:host > #outline {
-  border: 1px solid #eee;
+:host(:focus) {
+  outline: 0;
 }
-:host(.rendering) > #outline {
+:host(:focus) > #outline {
+  border: 1px dashed #986;
   z-index: 1;
-  border: 1px solid #fff5c0;
 }
+:host > #viewoption {
+  padding: 0.2em 0.4em;
+  background: transparent;
+  color: white;
+  text-shadow: 1px 1px 1px black;
+
+}
+:host(:hover) > #viewoption {}

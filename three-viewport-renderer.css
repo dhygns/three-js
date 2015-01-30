@@ -7,25 +7,22 @@
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   -ms-box-sizing: border-box;
-  cursor: crosshair;
+  pointer-events: none;
   position: relative;
   display: block;
 }
-:host > #outline {
+:host > canvas {
   pointer-events: none;
-}
-:host > #outline,
-:host > #renderer {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
 }
-:host(:focus) {
-  outline: 0;
+:host > #outline {
+  pointer-events: none;
+  border: 1px solid #eee;
 }
-:host(:focus) > #outline {
-  border: 1px dashed #986;
-  z-index: 1;
+:host(.rendering) > #outline {
+  border: 1px solid #fff5c0;
 }

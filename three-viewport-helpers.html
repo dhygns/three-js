@@ -1,4 +1,4 @@
-<link rel="import" href="../three.html">
+<link rel="import" href="three.html">
 
 <!--
 Manages viewport helpers (grid and axis).
@@ -107,7 +107,10 @@ Manages viewport helpers (grid and axis).
           this.grid = new THREE.GridHelper(this.gridSize * this.gridWidth, this.gridSize);
           this.grid.setColors(this.gridColor1, this.gridColor2);
           this.scene.add(this.grid);
-          
+          this.grid.material.transparent = true;
+          this.grid.material.opacity = 0.5;
+          this.grid.material.depthWrite = false;
+
           this.plane = new THREE.Mesh(
               new THREE.PlaneBufferGeometry(1000000, 1000000, 2, 2),
               new THREE.MeshBasicMaterial({side: THREE.DoubleSide})
@@ -115,6 +118,7 @@ Manages viewport helpers (grid and axis).
           this.plane.rotation.set(Math.PI / 2, 0, 0);
           this.plane.material.transparent = true;
           this.plane.material.opacity = 0;
+          this.plane.material.depthWrite = false;
           this.scene.add(this.plane);
 
           this.axis = new THREE.AxisHelper(10);
@@ -155,6 +159,7 @@ Manages viewport helpers (grid and axis).
               this.plane.rotation.set(0, 0, Math.PI / 2);
               break;
           }
+          // TODO: rename
           this.fire('helper-changed', this.scene);
         },
 
