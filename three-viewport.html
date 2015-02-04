@@ -151,7 +151,11 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
           gridSize: 10,
           gridWidth: 10,
           gridColor1: null,
-          gridColor2: null
+          gridColor2: null,
+
+          // Optional functions to be run before and after render step
+          preRender: null,
+          postRender: null
         },
 
         observe: {
@@ -209,6 +213,7 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
 
         render: function() {
           if (!this.rendered) {
+            if (this.preRender) this.preRender();
             this.$.renderer.setClearColor(this.clearColor);
             this.$.renderer.clear();
             this.camera.updateProjectionMatrix();
@@ -220,6 +225,7 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
               this.$.renderer.render(this.helperScene, this.camera);
             }
             this.rendered = true;
+            if (this.postRender) this.postRender();
             requestAnimationFrame(function() {this.rendered = false;}.bind(this));
             this.fire('viewport-rendered', this);
           }
