@@ -217,11 +217,9 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
             this.$.renderer.setClearColor(this.clearColor);
             this.$.renderer.clear();
             this.camera.updateProjectionMatrix();
-            if (this.showHelpers) {
-              this.$.renderer.render(this.$.helpers.scene, this.camera);
-            }
             this.$.renderer.render(this.scene, this.camera);
             if (this.showHelpers) {
+              this.$.renderer.render(this.$.helpers.scene, this.camera);
               this.$.renderer.render(this.helperScene, this.camera);
             }
             this.rendered = true;
