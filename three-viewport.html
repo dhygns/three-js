@@ -36,7 +36,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
     <three-viewport-helpers
         id="helpers"
         view="{{view}}"
-        upAxis="{{upAxis}}"
         showGrid="{{showGrid}}"
         showAxis="{{showAxis}}"
         gridSize="{{gridSize}}"
@@ -145,7 +144,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
            * three-viewport-helpers attributes
            * See three-viewport-helpers for documentation
            */
-          upAxis: 'y',
           showGrid: true,
           showAxis: true,
           gridSize: 10,
@@ -160,8 +158,7 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
 
         observe: {
           'clearColor.r clearColor.g clearColor.b': 'renderLater',
-          'showHelpers': 'renderLater',
-          'scene helperScene': 'upAxisChanged'
+          'showHelpers': 'renderLater'
         },
 
         eventDelegates: {
@@ -230,19 +227,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
         },
         renderLater: function() {
           requestAnimationFrame(this._render);
-        },
-
-        upAxisChanged: function() {
-          // TODO: consider restoring rotation on scene change
-          if (this.upAxis == 'x') {
-            this.scene.rotation.set(0, 0, 0);
-            this.helperScene.rotation.set(0, 0, 0);
-            this.$.helpers.scene.rotation.set(0, 0, 0);
-          } else if (this.upAxis == 'z') {
-            this.scene.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
-            this.helperScene.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
-            this.$.helpers.scene.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
-          }
         },
 
         addListeners: function() {
@@ -377,8 +361,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
               object.updateMatrixWorld();
               this.$.controls.focusObject(object, true);
               this.renderLater();
-              if (object.geometry) {
-              }
           }.bind(this));
         },
 

@@ -32,13 +32,6 @@ Manages viewport helpers (grid and axis).
            */
           view: null,
           /**
-           * Determines which axis is up.
-           * @attribute upAxis
-           * @type string
-           * @default 'y'
-           */
-          upAxis: 'y',
-          /**
            * Determines if the grid is visible
            *
            * @attribute showGrid
@@ -126,34 +119,23 @@ Manages viewport helpers (grid and axis).
           this.scene.add(this.axis);
         },
 
-        upAxisChanges: function() {
-          this.viewChanged();
-        },
-
         viewChanged: function() {
-          switch (this.view + '_' + this.upAxis) {
-            case 'top_y':
-            case 'bottom_y':
-            case 'persp_y':
-            case 'left_z':
-            case 'right_z':
+          switch (this.view) {
+            case 'top':
+            case 'bottom':
+            case 'persp':
               // facing Y
               this.grid.rotation.set(0, 0, 0);
               this.plane.rotation.set(Math.PI / 2, 0, 0);
               break;
-            case 'left_y':
-            case 'right_y':
-            case 'front_z':
-            case 'back_z':
+            case 'left':
+            case 'right':
               // facing X
               this.grid.rotation.set(0, 0, Math.PI / 2);
               this.plane.rotation.set(0, Math.PI / 2, 0);
               break;
-            case 'front_y':
-            case 'back_y':
-            case 'top_z':
-            case 'bottom_z':
-            case 'persp_z':
+            case 'front':
+            case 'back':
               // facing Z
               this.grid.rotation.set(Math.PI / 2, 0, 0);
               this.plane.rotation.set(0, 0, Math.PI / 2);
