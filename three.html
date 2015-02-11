@@ -7,3 +7,15 @@
 <script src="js/NURBSCurve.js"></script>
 <script src="js/NURBSSurface.js"></script>
 <script src="js/NURBSUtils.js"></script>
+
+<script src="js/pnltri.min.js"></script>
+<!-- replace built-in triangulation with PnlTri.js -->
+<script>
+THREE.Shape.Utils.triangulateShape = (function() {
+	var pnlTriangulator = new PNLTRI.Triangulator();
+	return function(contour, holes) {
+		// console.log("new Triangulation: PnlTri.js " + PNLTRI.REVISION );
+		return pnlTriangulator.triangulate_polygon([contour].concat(holes));
+	};
+})();
+</script>
