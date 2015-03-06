@@ -117,6 +117,52 @@ Manages viewport helpers (grid and axis).
           this.axis = new THREE.AxisHelper(10);
           this.axis.material.linewidth = 2;
           this.scene.add(this.axis);
+
+          function createSymbol(symbol, position, color) {
+            var geometry = new THREE.Geometry();
+            geometry.vertices.push(new THREE.Vector3());
+            var canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            var ctx = canvas.getContext('2d');
+            ctx.font = '64px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = color;
+              ctx.fillText(symbol, 32, 56);
+              ctx.globalCompositeOperation = 'destination-in';
+              var texture = new THREE.Texture(canvas);
+              texture.needsUpdate = true;
+              texture.premultiplyAlpha = true;
+              material = new THREE.PointCloudMaterial(
+                {size: 12, sizeAttenuation: false, map: texture, transparent: true, depthTest: false});
+              material.blendSrc = THREE.OneFactor;
+              material.blending = THREE.CustomBlending;
+              var sprite = new THREE.PointCloud(geometry, material);
+              sprite.position.copy(position);
+              return sprite;
+          }
+
+          this.compass = new THREE.Object3D();
+          this.compass.matrixAutoUpdate = false;
+          this.compass.scene = new THREE.Scene();
+          this.compass.scene.add(this.compass);
+          this.compass.axis = new THREE.AxisHelper(6);
+          this.compass.axis.material.depthTest = false;
+          this.compass.axis.material.linewidth = 2;
+          this.compass.add(this.compass.axis); 
+          this.compass.axis.add(createSymbol('X', new THREE.Vector3(11, 0, 0), 'red'));
+          this.compass.axis.add(createSymbol('Y', new THREE.Vector3(0, 11, 0), 'green'));
+          this.compass.axis.add(createSymbol('Z', new THREE.Vector3(0, 0, 11), 'blue'));
+
+          this.compass.update = function(camera) {
+            camera.updateMatrix();
+            this.matrix.extractRotation(camera.matrix);
+            this.matrix.getInverse(this.matrix);
+          }
+
+          this.compass.camera = new THREE.PerspectiveCamera(10, 1, 0.01, 200);
+          this.compass.camera.position.z = 150;
+
         },
 
         viewChanged: function() {
@@ -151,6 +197,7 @@ Manages viewport helpers (grid and axis).
         },
         showAxisChanged: function() {
           this.axis.visible = this.showAxis;
+          this.compass.visible = this.showAxis;
           this.fire('helper-changed', this.scene);
         },
 

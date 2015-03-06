@@ -218,6 +218,11 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
             if (this.showHelpers) {
               this.$.renderer.render(this.$.helpers.scene, this.camera);
               this.$.renderer.render(this.helperScene, this.camera);
+              
+              this.$.renderer.setViewport(0, 0, 64, 64);
+              this.$.renderer.render(this.$.helpers.compass.scene, this.$.helpers.compass.camera);
+              this.$.helpers.compass.update(this.camera);
+              this.$.renderer.setViewport(0, 0, this._rect.width, this._rect.height);
             }
             this.rendered = true;
             if (this.postRender) this.postRender();
