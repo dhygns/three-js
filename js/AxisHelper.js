@@ -29,20 +29,20 @@ THREE.AxisHelper = function ( size, labelSize ) {
 
     var material = new THREE.LineBasicMaterial( { vertexColors: THREE.VertexColors } );
 
-    var axis = new THREE.Line( geometry, material, THREE.LinePieces );
-    this.add( axis );
+    var axes = new THREE.Line( geometry, material, THREE.LinePieces );
+    this.add( axes );
 
     var labelX = new THREE.LabelHelper( 'x', labelSize, 'red');
-    labelX.position.set( size * 1.05, 0, 0 );
-    axis.add( labelX );
+    labelX.position.set( size, 0, 0 );
+    axes.add( labelX );
 
     var labelY = new THREE.LabelHelper( 'y', labelSize, 'green');
-    labelY.position.set( 0, size * 1.05, 0 );
-    axis.add( labelY );
+    labelY.position.set( 0, size, 0 );
+    axes.add( labelY );
 
     var labelZ = new THREE.LabelHelper( 'z', labelSize, 'blue');
-    labelZ.position.set( 0, 0, size * 1.05 );
-    axis.add( labelZ );
+    labelZ.position.set( 0, 0, size );
+    axes.add( labelZ );
 
 };
 
