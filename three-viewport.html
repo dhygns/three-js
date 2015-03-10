@@ -74,8 +74,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
       ];
       var faceKeys = ['a', 'b', 'c'];
 
-      var COMPASS_SIZE = 64;
-
       // temporary variables
       var x, y, intersects, intersect;
       var pointerVector = new THREE.Vector2();
@@ -220,19 +218,12 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
             if (this.showHelpers) {
               this.$.renderer.render(this.$.helpers.scene, this.camera);
               this.$.renderer.render(this.helperScene, this.camera);
-              this.renderCompass();
             }
             this.rendered = true;
             if (this.postRender) this.postRender();
             requestAnimationFrame(function() {this.rendered = false;}.bind(this));
             this.fire('viewport-rendered', this);
           }
-        },
-        renderCompass: function() {
-          this.$.renderer.setViewport(0, 0, COMPASS_SIZE, COMPASS_SIZE);
-          this.$.helpers.compass.update(this.camera);
-          this.$.renderer.render(this.$.helpers.compass.scene, this.$.helpers.compass.camera);
-          this.$.renderer.setViewport(0, 0, this._rect.width, this._rect.height);
         },
         renderLater: function() {
           requestAnimationFrame(this._render);
