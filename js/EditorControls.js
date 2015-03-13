@@ -275,9 +275,9 @@ THREE.EditorControls = function ( object, domElement, center ) {
 
 			vector.multiplyScalar( distance );
 
-			if ( vector.length() > distance ) return;
+			vector.applyMatrix3( matrix.getNormalMatrix( object.matrix ) );
 
-			vector.applyMatrix3(matrix.getNormalMatrix( object.matrix ) );
+			if ( object.position.clone().add(vector).distanceTo( center ) >= distance) return;
 
 			object.position.add( vector );
 
