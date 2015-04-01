@@ -61,9 +61,9 @@ Manages viewport cameras.
           this.cameras['left'].position.set(100, 0, 0);
           this.cameras['right'].rotation.set(0, -Math.PI / 2, 0);
           this.cameras['right'].position.set(-100, 0, 0);
-          this.cameras['top'].rotation.set(-Math.PI / 2, -Math.PI / 2, 0);
+          this.cameras['top'].rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
           this.cameras['top'].position.set(0, 100, 0);
-          this.cameras['bottom'].rotation.set(Math.PI / 2, 0, Math.PI / 2);
+          this.cameras['bottom'].rotation.set(Math.PI / 2, 0, -Math.PI / 2);
           this.cameras['bottom'].position.set(0, -100, 0);
           //
           if (!this.camera) this.camera = this.cameras['persp'];

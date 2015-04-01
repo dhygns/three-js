@@ -57,7 +57,7 @@ THREE.TextHelper = function ( label, options ) {
     this.type = 'textHelper';
 
     if (options.align == 'left') {
-        
+
         this.position.x = - options.size * aspect / 2;
 
     } else if (options.align == 'right') {
