@@ -1,6 +1,6 @@
 {
   "name": "three-js",
-  "version": "0.0.10",
+  "version": "0.1.8",
   "authors": [
     "Aki <aki@flux.io>"
   ],
@@ -18,6 +18,6 @@
   "dependencies": {
     "polymer": "Polymer/polymer#~0.5.2",
     "core-signals": "Polymer/core-signals#~0.5.2",
-    "io-bundle": "arodic/io-bundle#~0.6.2"
+    "io-value": "arodic/io-value#~0.7.0"
   }
 }
