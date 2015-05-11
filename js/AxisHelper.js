@@ -29,7 +29,7 @@ THREE.AxisHelper = function ( size, labelSize ) {
 
     var material = new THREE.LineBasicMaterial( { vertexColors: THREE.VertexColors } );
 
-    var axes = new THREE.Line( geometry, material, THREE.LinePieces );
+    var axes = new THREE.Line( geometry, material, THREE.LineSegments );
     this.add( axes );
 
     var labelX = new THREE.LabelHelper( 'x', labelSize, 'red');

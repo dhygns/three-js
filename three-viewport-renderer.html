@@ -98,7 +98,7 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
           // Create renderer for the first time.
           if (!renderer) {
             renderer = new THREE.WebGLRenderer({
-              antialias: false,
+              antialias: true,
               preserveDrawingBuffer: true,
               alpha: false
             });
