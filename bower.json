@@ -1,18 +1,16 @@
 {
   "name": "three-js",
-  "version": "0.2.2",
+  "version": "0.2.4",
+  "homepage": "https://github.com/arodic/three-js",
   "authors": [
-    "Aki <aki@flux.io>"
+    "Aleksandar Rodic <aleksandar.xyz@gmail.com>"
   ],
   "description": "This is a bundle of THREE.js web components and associated JavaScript files.",
   "main": "three.html",
   "keywords": [
-    "threejs",
-    "three",
-    "web-componets",
-    "polymer"
+    "threejs", "three", "three.js", "3d", "viewport", "webgl", "io", "ui", "polymer", "web-components"
   ],
-  "homepage": "https://bitbucket.org/vannevartech/three/overview",
+  "license": "MIT",
   "dependencies": {
     "polymer": "Polymer/polymer#~0.5.5",
     "core-signals": "Polymer/core-signals#~0.5.5",

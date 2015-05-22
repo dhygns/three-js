@@ -1,20 +1,21 @@
-<link rel="import" href="three.html">
+<link rel="import" href="../../../polymer/polymer.html">
+<link rel="import" href="../../three-js.html">
 
 <!--
 Element wrapper for the THREE.WebGLRenderer (http://threejs.org/docs/#Reference/Renderers/WebGLRenderer).
 
 It manages GL rendering context across multiple instances of three-viewport.
 
-three-viewport-renderer implements THREE.WebGLRenderer and makes it possible to use
+three-renderer implements THREE.WebGLRenderer and makes it possible to use
 a single WebGL rendering context in multiple [three-viewport](#three-viewport) elements.
 
-@element three-viewport-renderer
+@element three-renderer
 @blurb Element wrapper for the THREE.WebGLRenderer
 -->
 
-<polymer-element name="three-viewport-renderer">
+<polymer-element name="three-renderer">
   <template>
-   <link rel="stylesheet" type="text/css" href="three-viewport-renderer.css">
+   <link rel="stylesheet" type="text/css" href="three-renderer.css">
    <div id="outline" fit></div>
   </template>
   <script type="text/javascript">
@@ -31,7 +32,7 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
       var ctxPerfWarned;
 
       /**
-       * This function runs every time renderer migrates to another three-viewport-renderer host
+       * This function runs every time renderer migrates to another three-renderer host
        * It is designed to detect if migration feature is overrused by the user.
        */
       var performanceCheck = function() {
