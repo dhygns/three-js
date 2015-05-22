@@ -1,0 +1,55 @@
+<link rel="import" href="three-toolbar-button.html">
+<link rel="import" href="../../../../core-selector/core-selector.html">
+
+<!--
+@element three-toolbar
+-->
+
+<polymer-element name="three-toolbar" vertical justified layout>
+  <template>
+    <style type="text/css">
+      :host {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        display: block;
+        background: #444;
+      }
+    </style>
+    <div vertical layout>
+      <core-selector selected="{{toolName}}" valueattr="value">
+        <three-toolbar-button
+            value="none">
+          <io-help-message message="Cancel Tool (esc/q)"></io-help-message>
+        </three-toolbar-button>
+        <three-toolbar-button
+            value="three-tool-select" icon="create">
+          <io-help-message message="Slect Tool"></io-help-message>
+        </three-toolbar-button>
+        <three-toolbar-button
+            value="three-tool-sphere" icon="create">
+          <io-help-message message="Marker Tool"></io-help-message>
+        </three-toolbar-button>
+        <three-toolbar-button
+            value="three-tool-line" icon="create">
+          <io-help-message message="Line Tool"></io-help-message>
+        </three-toolbar-button>
+      </core-selector>
+    </div>
+    <div vertical layout>
+      <core-selector selected="{{toolName}}" valueattr="value">
+      </core-selector>
+    </div>
+  </template>
+  <script type="text/javascript">        
+    Polymer({
+      publish: {
+        toolName: null
+      },
+      setTool: function(event, asd) {
+        console.log(event, asd);
+      }
+    });
+  </script>
+</polymer-element>

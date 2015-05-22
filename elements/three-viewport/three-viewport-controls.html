@@ -1,4 +1,5 @@
-<link rel="import" href="../three-js/three.html">
+<link rel="import" href="../../../polymer/polymer.html">
+<link rel="import" href="../../three-js.html">
 
 <!--
 Viewport camera controller
@@ -29,6 +30,10 @@ Viewport camera controller
             this.fire('three-viewport-controls-changed');
           }.bind(this));
 
+        },
+
+        enabledChanged: function() {
+          this.controls.enabled = this.enabled;
         },
 
         focusObject: function(object, frame) {

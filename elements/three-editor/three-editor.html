@@ -1,0 +1,69 @@
+<link rel="import" href="../../../polymer/polymer.html">
+
+<link rel="import" href="../three-quad-viewport/three-quad-viewport.html">
+<link rel="import" href="../../../io-help-line/io-help-line.html">
+
+<link rel="import" href="../three-toolbar/three-toolbar.html">
+<link rel="import" href="../three-toolset/toolset.html">
+
+<polymer-element name="three-editor" vertical layout fit>
+  <template>
+    <link rel="stylesheet" type="text/css" href="three-editor.css">
+    <div horizontal layout flex>
+      <three-toolset
+          scene="{{scene}}"
+          helperScene="{{helperScene}}"
+          selection="{{selection}}"
+          tool="{{tool}}"
+          toolName="{{toolName}}">
+      </three-toolset>
+      <three-toolbar
+          toolName="{{toolName}}">
+      </three-toolbar>
+      <three-quad-viewport flex id="viewport"
+          renderAll="{{renderAll}}"
+          scene="{{scene}}"
+          helperScene="{{helperScene}}"
+          showAxis="{{showAxis}}"
+          showGrid="{{showGrid}}"
+          tool="{{tool}}"
+          on-keyup="{{handleViewportKeyUp}}">
+      </three-quad-viewport>
+      <three-outliner
+          scene="{{scene}}">
+      </three-outliner>
+    </div>
+    <io-help-line></io-help-line>
+  </template>
+  <script>
+    Polymer({
+      publish: {
+        scene: null,
+        helperScene: null,
+        selection: [],
+        tool: null,
+        renderAll: false,
+        ready: function() {
+          window.e = this;
+          this.scene = this.scene || new THREE.Scene();
+          this.helperScene = this.helperScene || new THREE.Scene();
+        },
+        handleViewportKeyUp: function(event) {
+          // TODO: consider moving to a command.
+          switch (event.which) {
+            // F
+            case 70:
+              if (this.selection.length) {
+                event.path[0].focusObject(this.selection[0]);
+              }
+              break;
+            // A
+            case 65:
+              this.$.viewport.focusObject(this.scene);
+              break;
+          }
+        }
+      }
+    });
+  </script>
+</polymer-element>

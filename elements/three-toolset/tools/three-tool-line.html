@@ -1,0 +1,144 @@
+<!-- <link rel="import" href="../../three.html"> -->
+<link rel="import" href="three-tool.html">
+
+<!--
+@element three-tool-line
+-->
+
+<polymer-element name="three-tool-line" extends="three-tool">
+  <script>        
+    Polymer({
+
+      ready: function() {
+        this.super();
+        this.begin();
+      },
+
+      begin: function(event) {
+        this.super();
+        this.lineArray = [];
+        this.lineMesh = new THREE.Line(
+          new THREE.BufferGeometry(),
+          new THREE.LineBasicMaterial({
+            linewidth: 1
+          })
+        );
+      },
+
+      end: function(event) {
+        this.super();
+        if (this.lineArray.length <= 6) {
+          return;
+        }
+        var newMesh = new THREE.Line(
+          this.lineMesh.geometry.clone(),
+          this.lineMesh.material.clone()
+        );
+        newMesh.name = 'line'; //TODO: increment
+        this.scene.add(newMesh);
+
+        if (this.lineMesh.parent) this.lineMesh.parent.remove(this.lineMesh);
+        this.cancel(); // TODO: debug
+      },
+
+      cancel: function() {
+        this.super();
+        if (this.lineMesh.parent) this.lineMesh.parent.remove(this.lineMesh);
+      },
+
+      update: function() {
+        this.super();
+        if (this.lineArray.length) {
+          if (this.lineMesh.parent != this.helperScene) {
+            this.helperScene.add(this.lineMesh);
+          }
+
+          // TODO(aki): profile GC
+          this.lineMesh.geometry.dispose();
+          delete this.lineMesh.geometry.attributes.index;
+          delete this.lineMesh.geometry.attributes.position;
+
+          this.indexBuffer = new Uint32Array(this.lineArray.length / 3);
+          this.lineMesh.geometry.addAttribute('index',
+            new THREE.BufferAttribute(this.indexBuffer, 1));
+
+          this.vtxBuffer = new Float32Array(this.lineArray.length);
+          this.lineMesh.geometry.addAttribute('position',
+            new THREE.BufferAttribute(this.vtxBuffer, 3));
+
+          for (var i = 0; i < this.lineArray.length / 3; i++) {
+            this.vtxBuffer[i * 3 + 0] = this.lineArray[i * 3 + 0];
+            this.vtxBuffer[i * 3 + 1] = this.lineArray[i * 3 + 1];
+            this.vtxBuffer[i * 3 + 2] = this.lineArray[i * 3 + 2];
+            this.indexBuffer[i] = i;
+          }
+
+          this.lineMesh.geometry.computeBoundingSphere();
+        }
+      },
+
+      addPoint: function(position) {
+        this.lineArray.push(position.x);
+        this.lineArray.push(position.y);
+        this.lineArray.push(position.z);
+        // TODO: only do this when dragging
+        if (this.lineArray.length == 3) {
+          this.lineArray.push(position.x);
+          this.lineArray.push(position.y);
+          this.lineArray.push(position.z);
+        }
+        this.update();
+      },
+      moveEndPoint: function(position) {
+        this.lineArray[this.lineArray.length - 3] = position.x;
+        this.lineArray[this.lineArray.length - 2] = position.y;
+        this.lineArray[this.lineArray.length - 1] = position.z;
+        this.update();
+      },
+      removeLastPoint: function() {
+        if (this.lineArray.length) {
+          this.lineArray.splice(this.lineArray.length - 3, 3);
+        }
+        this.update();
+      },
+
+      onMouseMove: function(event) {
+        this.fire('io-help-message',
+          'Line Tool: <b>Click</b> or <b>drag</b> to draw a line. Press <b>Enter</b> when done.');
+        if (!event.point || !this.dragging) return;
+        if (this.lineArray.length >= 6) {
+          this.moveEndPoint(event.point);
+        }
+      },
+
+      onTrack: function() {
+        this.fire('io-help-message', 'Line Tool: Hold <b>Shift</b> to snap.');
+      },
+
+      onDown: function(event) {
+        if (!event.point) return;
+        this.dragging = true;
+        this.addPoint(event.point);
+      },
+
+      onUp: function(event) {
+        if (!event.point) return;
+        this.dragging = false;
+      },
+
+      onKeyDown: function(event) {
+        this.super();
+        switch (event.which) {
+          case 13: // enter
+            this.end();
+            this.cancel();
+            break;
+          case 8: // backspace
+            this.removeLastPoint();
+            break;
+        }
+      }
+
+    });
+  </script>
+</polymer-element>

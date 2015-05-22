@@ -1,13 +1,13 @@
 <link rel="import" href="../../../polymer/polymer.html">
 <link rel="import" href="../../three-js.html">
-
 <!--
 Element wrapper for the THREE.WebGLRenderer (http://threejs.org/docs/#Reference/Renderers/WebGLRenderer).
 
-It manages GL rendering context across multiple instances of three-viewport.
+It manages GL rendering context across multiple instances of three-renderer.
 
-three-renderer implements THREE.WebGLRenderer and makes it possible to use
-a single WebGL rendering context in multiple [three-viewport](#three-viewport) elements.
+All instances of this element will share a single WebGL canvas element. An element instance becomes a host of the canvas any time WebGL API is used through one of its methods. Before this happens, the previous host needs to store the framebuffer data in a 2D canvas before the WebGL canvas can be handed out.
+
+IMPORTANT: Keep in mind that WebGL canvas migration is expensive and should not be performed continuously. In other words, you cannot render with mutliple instances of three-renderer in realtime without severe performance penalties.
 
 @element three-renderer
 @blurb Element wrapper for the THREE.WebGLRenderer
@@ -16,14 +16,12 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
 <polymer-element name="three-renderer">
   <template>
    <link rel="stylesheet" type="text/css" href="three-renderer.css">
-   <div id="outline" fit></div>
   </template>
   <script type="text/javascript">
     (function() {
 
       var renderer;
       var currentHost;
-      var glEnabled = true;
       var gl;
 
       var ctxPerfNow = 0;
@@ -48,38 +46,44 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
 
       /**
       * Renderer method that will be available on this element as proxy.
-      * calling this method will triger renderer migration.
+      * calling this method may triger renderer migration.
       * @method clear
       * @method setClearColor
       * @method setSize
       * @method render
       */
-      var methods = ['clear', 'setClearColor', 'setSize', 'render', 'setViewport'];
+      var methods = ['clear', 'setSize', 'render', 'setViewport'];
 
       Polymer({
         publish: {
           // THREE.WebGLRenderer attributes
-          autoClear: false,
-          autoClearColor: false,
-          autoClearDepth: false,
-          autoClearStencil: false,
+          autoClear: true,
+          autoClearColor: true,
+          autoClearDepth: true,
+          autoClearStencil: true,
+          gammaFactor: 2,
+          gammaInput: false,
+          gammaOutput: false,
           sortObjects: true,
-          gammaInput: true,
-          gammaOutput: true,
-          width: null,
-          height: null
+          //
+          clearColor: 0x666666,
+          clearAlpha: 1,
+          //
+          width: 200,
+          height: 200
         },
 
-
         observe: {
+          'width height': 'resize',
+
+          // TODO: remove
           'autoClear': 'update',
           'autoClearColor': 'update',
           'autoClearDepth': 'update',
           'autoClearStencil': 'update',
           'sortObjects': 'update',
           'gammaInput': 'update',
-          'gammaOutput': 'update',
-          'width height': 'resizeCanvas'
+          'gammaOutput': 'update'
         },
 
         ready: function() {
@@ -87,12 +91,11 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
           this.canvas = document.createElement('canvas');
           this.canvas.id = 'canvas';
           this.ctx = this.canvas.getContext('2d');
-          this.shadowRoot.insertBefore(this.canvas, this.$.outline);
+          this.shadowRoot.appendChild(this.canvas);
 
           // Detect WebGL support
           if (!Detector.webgl) {
-            this.shadowRoot.insertBefore(Detector.getWebGLErrorMessage(), this.$.outline);
-            glEnabled = false;
+            this.shadowRoot.appendChild(Detector.getWebGLErrorMessage());
             return;
           }
 
@@ -110,7 +113,6 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
           // Create proxies for renderer methods
           methods.forEach(function(method) {
             this[method] = function() {
-              if (!glEnabled) return;
               this.setHost();
               renderer[method].apply(renderer, arguments);
             }
@@ -118,23 +120,31 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
 
         },
 
+        attached: function() {
+          this.resize();
+        },
+
         // Set renderer parameters
         update: function() {
-          if (!glEnabled) return;
           renderer.autoClear = this.autoClear;
           renderer.autoClearColor = this.autoClearColor;
           renderer.autoClearDepth = this.autoClearDepth;
           renderer.autoClearStencil = this.autoClearStencil;
-          renderer.sortObjects = this.sortObjects;
+          renderer.gammaFactor = this.gammaFactor;
           renderer.gammaInput = this.gammaInput;
           renderer.gammaOutput = this.gammaOutput;
+          renderer.sortObjects = this.sortObjects;
+          renderer.setClearColor(this.clearColor);
+          renderer.setClearAlpha(this.clearAlpha);
         },
 
         // Resize canvas2D automatically
-        resizeCanvas: function() {
-          this.canvas.width = this.width;// * window.devicePixelRatio;
-          this.canvas.height = this.height;// * window.devicePixelRatio;
-          this.fire('canvas-resized');
+        resize: function() {
+          this.style.width = this.width + 'px';
+          this.style.height = this.height + 'px';
+          this.canvas.width = this.width;
+          this.canvas.height = this.height;
+          this.fire('three-renderer-resized');
         },
 
         /**
@@ -142,7 +152,6 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
          * and copy framebuffer into Canvas2D element of the previous host.
          */
         setHost: function() {
-          if (!glEnabled) return;
           if (this != currentHost) {
             performanceCheck();
             if (currentHost) {
@@ -154,7 +163,7 @@ a single WebGL rendering context in multiple [three-viewport](#three-viewport) e
             }
             currentHost = this;
             this.setHostSize();
-            this.shadowRoot.insertBefore(renderer.domElement, this.$.outline);
+            this.shadowRoot.appendChild(renderer.domElement);
             this.canvas.style.display = 'none';
             this.classList.toggle('rendering', true);
             requestAnimationFrame(function() {

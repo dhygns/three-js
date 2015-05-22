@@ -3,9 +3,9 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
-  <title>three-renderer demo</title>
+  <title>three-viewport demo</title>
   <script src="../../../webcomponentsjs/webcomponents-lite.min.js"></script>
-  <link rel="import" href="three-renderer.html">
+  <link rel="import" href="three-viewport.html">
   <style type="text/css">
     html {
       -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
@@ -20,36 +20,16 @@
   <demo-app></demo-app>
   <polymer-element name="demo-app">
     <template>
-      <three-renderer id="renderer0" width="300" height="300"></three-renderer>
-      <three-renderer id="renderer1" width="300" height="300" clearColor="0x333333"></three-renderer>
-      <three-renderer id="renderer2" width="300" height="300" clearColor="0x000000"></three-renderer>
-      <three-renderer id="renderer3" width="300" height="300" clearColor="0x445566"></three-renderer>
-      </three-renderer>
+      <three-viewport id="viewport0" style="width:300px; height:300px" ></three-viewport>
+      <three-viewport id="viewport1" style="width:300px; height:300px" background="silver"></three-viewport>
+      <three-viewport id="viewport2" style="width:300px; height:300px" background="grey"></three-viewport>
+      <three-viewport id="viewport3" style="width:300px; height:300px" background="silver"></three-viewport>
+      </three-viewport>
     </template>
     <script>
 
-      var scene = new THREE.Scene();
-      var camera = new THREE.PerspectiveCamera(60, 1, 1000, 0.1);
-      var axis = new THREE.AxisHelper();
-      scene.add(axis);
-
       Polymer({
         domReady: function() {
-          camera.position.set(2, 2, 2);
-          camera.lookAt(new THREE.Vector3());
-          this.$.renderer0.render(scene, camera);
-
-          camera.position.set(2, 0, 0);
-          camera.lookAt(new THREE.Vector3());
-          this.$.renderer1.render(scene, camera);
-
-          camera.position.set(0, 2, 0);
-          camera.lookAt(new THREE.Vector3());
-          this.$.renderer2.render(scene, camera);
-
-          camera.position.set(0, 0, 2);
-          camera.lookAt(new THREE.Vector3());
-          this.$.renderer3.render(scene, camera);
         }
       });
 

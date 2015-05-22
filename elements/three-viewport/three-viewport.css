@@ -9,13 +9,11 @@
   -ms-box-sizing: border-box;
   cursor: crosshair;
   position: relative;
-  display: block;
-}
-:host > #outline {
-  pointer-events: none;
+  display: inline-block;
 }
 :host > #outline,
 :host > #renderer {
+  pointer-events: none;
   position: absolute;
   top: 0;
   left: 0;
@@ -34,6 +32,5 @@
   background: transparent;
   color: white;
   text-shadow: 1px 1px 1px black;
-
 }
 :host(:hover) > #viewoption {}

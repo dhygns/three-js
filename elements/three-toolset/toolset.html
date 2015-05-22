@@ -1,0 +1,91 @@
+<link rel="import" href="tools/three-tool-line.html">
+<link rel="import" href="tools/three-tool-sphere.html">
+<link rel="import" href="tools/three-tool-select.html">
+
+<!--
+@element three-toolset
+-->
+
+<polymer-element name="three-toolset">
+  <template></template>
+  <script>        
+    Polymer({
+      publish: {
+  	    scene: null,
+  	    helperScene: null,
+  	    selection: [],
+  	    //
+        tool: null,
+        toolName: null,
+      },
+      observe: {
+        'scene helperScene selection': 'updateTool'
+      },
+      eventDelegates: {
+        'three-tool-cancel': 'onToolCancel'
+      },
+      toolNameChanged: function() {
+        if (this.toolName == 'none') {
+          this.toolName = null;
+          return;
+        }
+        if (this.toolName) {
+          this.tool = document.createElement(this.toolName);
+        } else {
+          this.tool = null;
+        }
+      },
+      toolChanged: function(prevTool) {
+        if (this.tool) {
+          this.updateTool();
+          this.shadowRoot.innerHTML = '';
+          this.shadowRoot.appendChild(this.tool);
+          this.toolName = this.tool.localName;
+        } else {
+          this.shadowRoot.innerHTML = '';
+          this.toolName = null;
+        }
+        if (prevTool) prevTool.cancel();
+      },
+      updateTool: function() {
+        if (this.tool) {
+          this.tool.scene = this.scene;
+          this.tool.helperScene = this.helperScene;
+          this.tool.selection = this.selection;
+        }
+      },
+      onToolCancel: function() {
+        this.tool = null;
+      },
+      attached: function() {
+        this._onDocumentKeyUp = this.onDocumentKeyUp.bind(this);
+        document.addEventListener('keyup', this._onDocumentKeyUp);
+      },
+      detached: function() {
+        document.removeEventListener('keyup', this._onDocumentKeyUp);
+      },
+      onDocumentKeyUp: function(event) {
+        switch(event.which) {
+          // Cancel on 'esc/q' key
+          case 27:
+          case 81:
+            if (this.tool) this.tool.cancel();
+            break;
+          // W
+          case 87:
+            this.toolName = 'select';
+            break;
+          // E
+          case 69:
+            this.toolName = 'sphere';
+            break;
+          // R
+          case 82:
+            this.toolName = 'line';
+            break;
+          
+        }
+      }
+    });
+  </script>
+</polymer-element>

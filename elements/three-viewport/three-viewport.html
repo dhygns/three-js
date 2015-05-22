@@ -1,7 +1,9 @@
-<link rel="import" href="three.html">
-<link rel="import" href="../io-value/io-options.html">
+<link rel="import" href="../../../polymer/polymer.html">
+<link rel="import" href="../../three-js.html">
 
-<link rel="import" href="three-viewport-renderer.html">
+<link rel="import" href="../../../io-options/io-options.html">
+
+<link rel="import" href="../three-renderer/three-renderer.html">
 <link rel="import" href="three-viewport-camera.html">
 <link rel="import" href="three-viewport-controls.html">
 <link rel="import" href="three-viewport-helpers.html">
@@ -9,7 +11,7 @@
 <!--
 Viewport element with basic camera controls and tool API.
 
-three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-camera](#io-camera), [io-controls](#io-controls) and [io-helpers](#io-helpers)
+three-viewport uses [three-renderer](#three-renderer), [io-camera](#io-camera), [io-controls](#io-controls) and [io-helpers](#io-helpers)
 
 @element three-viewport
 @blurb Viewport element with basic camera controls and tool API
@@ -31,6 +33,7 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
         width="{{width}}"
         height="{{height}}"
         viewport="{{}}"
+        enabled="{{!tool}}"
         on-three-viewport-controls-changed="{{saveCameraStates}}">
     </three-viewport-controls>
     <three-viewport-helpers
@@ -44,10 +47,15 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
         gridColor2="{{gridColor2}}"
         on-helper-changed="{{renderLater}}">
     </three-viewport-helpers>
-    <three-viewport-renderer id="renderer"
+    <three-renderer id="renderer"
+        clearColor="{{background}}"
+        autoClear="false"
+        autoClearColor="true"
+        autoClearDepth="true"
+        autoClearStencil="true"
         width="{{width}}"
         height="{{height}}">
-    </three-viewport-renderer>
+    </three-renderer>
     <io-options id="viewoption" value="{{view}}" options="{{viewOptions}}"></io-options>
     <div id="outline"></div>
   </template>
@@ -107,20 +115,20 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
           camera: null,
           /**
            * Background color
-           * @attribute clearColor
+           * @attribute background
            * @type object
            * @default new THREE.Color(0xCCCCCC)
            */
-          clearColor: null,
+          background: null,
           /**
            * Default camera views
            * Available settings: persp, top, bottom, front, back, left, right
            * Changind this attribute will change the 'camera' attribute and grid orientation.
            * @attribute view
            * @type string
-           * @default null
+           * @default 'persp'
            */
-          view: null,
+          view: 'persp',
 
           /**
            * Determines if scene helpers are rendered.
@@ -159,12 +167,12 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
         },
 
         observe: {
-          'clearColor.r clearColor.g clearColor.b': 'renderLater',
+          'background': 'renderLater',
           'showHelpers': 'renderLater'
         },
 
         eventDelegates: {
-          'canvas-resized': 'renderLater',
+          'three-renderer-resized': 'renderLater',
           'focus': 'renderLater',
           'mousemove': 'handleMouseMove'
         },
@@ -176,7 +184,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
 
         altKey: null,
         ctrlKey: null,
-        ctrlKey: null,
 
         view: 'persp',
         viewOptions: ['persp', 'top', 'bottom', 'front', 'back', 'left', 'right'],
@@ -187,7 +194,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
           this.pointerHandlers = {};
           if (!this.scene) this.scene = new THREE.Scene();
           if (!this.helperScene) this.helperScene = new THREE.Scene();
-          if (!this.clearColor) this.clearColor = new THREE.Color(0xC5CDCC);
           if (!this.gridColor1) this.gridColor1 = new THREE.Color(0xC5CDCC);
           if (!this.gridColor2) this.gridColor2 = new THREE.Color(0xC5CDCC);
         },
@@ -213,7 +219,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
         render: function() {
           if (!this.rendered) {
             if (this.preRender) this.preRender();
-            this.$.renderer.setClearColor(this.clearColor);
             this.$.renderer.clear();
             this.camera.updateProjectionMatrix();
             this.$.renderer.render(this.scene, this.camera);
@@ -245,17 +250,17 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
               var eventName = viewportEvents[i].toLowerCase();
               scope.pointerHandlers[eventName] = function(event) {
 
-                if (event.path[0] !== this) return;
+                if (event.path[0] !== scope) return;
 
                 // Use controls if alt is pressed or no tool is set.                
-                if (event.altKey !== undefined) this.altKey = event.altKey;
+                if (event.altKey !== undefined) scope.altKey = event.altKey;
 
                 var callbackName = 'on' + viewportEvents[i];
 
                 // For each event, we check if corresponding event handler exist in attached tool.
                 // If the tool is attached and has the event handler, we pass event data to it.
                 // Otherwise, we send the data to camera controls (also when alt key is pressed).
-                if (this.altKey || !scope.tool) {
+                if (scope.altKey || !scope.tool) {
                   if (typeof(scope.$.controls[callbackName]) == 'function') {
                     scope.$.controls[callbackName](event);
                   }
@@ -373,10 +378,6 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
           }.bind(this));
         },
 
-        handleMouseMove: function(event) {
-          this.fire('three-viewport-hover', this);
-        },
-
         saveCameraStates: function() {
           this.cameraStates = {};
           for (var view in this.$.cameras.cameras) {
@@ -395,19 +396,9 @@ three-viewport uses [three-viewport-renderer](#three-viewport-renderer), [io-cam
           }
           this.renderLater();
         },
-        cameraStatesChanged: function(previousCameraStates) {
-          for (var view in this.cameraStates) {
-            var camera = this.$.cameras.cameras[view];
-            camera.position.x = this.cameraStates[view].px;
-            camera.position.y = this.cameraStates[view].py;
-            camera.position.z = this.cameraStates[view].pz;
-            camera.rotation.x = this.cameraStates[view].rx;
-            camera.rotation.y = this.cameraStates[view].ry;
-            camera.rotation.z = this.cameraStates[view].rz;
-            camera._target.x = this.cameraStates[view].tx;
-            camera._target.y = this.cameraStates[view].ty;
-            camera._target.z = this.cameraStates[view].tz;
-          }
+
+        handleMouseMove: function(event) {
+          this.fire('three-viewport-hover', this);
         }
 
       });

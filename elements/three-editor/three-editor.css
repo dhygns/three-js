@@ -1,0 +1,24 @@
+:host {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+io-help-line {
+  background: #444;
+}
+io-help-line::shadow > #message {
+  margin: 2px;
+  padding: 1px 5px;
+  background: #333;
+  color: #ccc;
+  font-size: 12px;
+  line-height: 12px;
+  height: 12px;
+  font-weight: lighter;
+  letter-spacing: 2px;
+}
+io-help-line::shadow #message b {
+  font-weight: bolder;
+  color: #acf;
+}

@@ -1,0 +1,52 @@
+<!-- <link rel="import" href="../../three.html"> -->
+
+<!--
+@element three-tool
+-->
+
+<polymer-element name="three-tool">
+  <script>        
+    Polymer({
+      publish: {
+        scene: null,
+        helperScene: null,
+        selection: []
+      },
+      ready: function() {
+        this.fire('three-tool-ready', this);
+      },
+      begin: function() {
+        this.fire('three-tool-begin', this);
+      },
+      end: function() {
+        this.fire('three-tool-end', this);
+      },
+      update: function() {
+        this.fire('three-tool-update', this);
+      },
+      cancel: function() {
+        this.fire('three-tool-cancel', this);
+      },
+      // // pointer events
+      // onMouseMove: function(event) {
+      // },
+      // onDown: function(event) {
+      // },
+      // onUp: function(event) {
+      // },
+      // onTrackStart: function(event) {
+      // },
+      // onTrack: function(event) {
+      // },
+      // onTrackEnd: function(event) {
+      // },
+      // onTap: function(event) {
+      // },
+      // // keyboard events
+      // onKeyDown: function(event) {
+      // },
+      // onKeyUp: function(event) {
+      // },
+    });
+  </script>
+</polymer-element>
