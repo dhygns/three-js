@@ -1,5 +1,5 @@
-THREE.js web compoenents
-========================
+three-js
+========
 
 This [Polymer](https://www.polymer-project.org/) element provides an easy way to import [three.js library](http://threejs.org/) and associated JavaScript files via [HTML Imports](http://w3c.github.io/webcomponents/spec/imports/).
 

@@ -1,23 +1,14 @@
 {
   "name": "three-js",
-  "version": "0.2.4",
+  "version": "0.4.0",
   "homepage": "https://github.com/arodic/three-js",
   "authors": [
     "Aleksandar Rodic <aleksandar.xyz@gmail.com>"
   ],
-  "description": "This is a bundle of THREE.js web components and associated JavaScript files.",
+  "description": "HTML imports three.js library",
   "main": "three.html",
   "keywords": [
-    "threejs",
-    "three",
-    "three.js",
-    "3d",
-    "viewport",
-    "webgl",
-    "io",
-    "ui",
-    "polymer",
-    "web-components"
+    "threejs", "three", "three.js", "3d", "viewport", "webgl", "io", "ui", "polymer", "web-components"
   ],
   "license": "MIT",
   "dependencies": {
