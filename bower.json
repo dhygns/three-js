@@ -1,6 +1,6 @@
 {
   "name": "three-js",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "homepage": "https://github.com/arodic/three-js",
   "authors": [
     "Aleksandar Rodic <aleksandar.xyz@gmail.com>"
@@ -8,14 +8,10 @@
   "description": "HTML imports three.js library",
   "main": "three.html",
   "keywords": [
-    "threejs", "three", "three.js", "3d", "viewport", "webgl", "io", "ui", "polymer", "web-components"
+    "threejs", "three", "three.js", "3d", "webgl", "polymer", "element", "web-components"
   ],
   "license": "MIT",
   "dependencies": {
-    "polymer": "Polymer/polymer#~0.5.6",
-    "core-signals": "Polymer/core-signals#~0.5.6",
-    "io-value": "arodic/io-value#~0.8.4",
-    "io-help-line": "arodic/io-help-line#~0.2.0",
-    "core-selector": "Polymer/core-selector#~0.5.6"
+    "polymer": "Polymer/polymer#~0.5.6"
   }
 }
