@@ -1,6 +1,6 @@
 {
   "name": "three-js",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "homepage": "https://github.com/arodic/three-js",
   "authors": [
     "Aleksandar Rodic <aleksandar.xyz@gmail.com>"
@@ -11,7 +11,10 @@
     "threejs", "three", "three.js", "3d", "webgl", "polymer", "element", "web-components"
   ],
   "license": "MIT",
+  "ignore": [
+    "**/.*"
+  ],
   "dependencies": {
-    "polymer": "Polymer/polymer#~0.5.6"
+    "polymer": "Polymer/polymer#~0.5.4"
   }
 }
