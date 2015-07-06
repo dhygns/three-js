@@ -1,13 +1,3 @@
-<!--
-HTML imports three.js library
-
-@element three-js
-@homepage https://github.com/arodic/three-js
-@demo http://akirodic.com/components/three-js/demo.html
-@blurb HTML imports three.js library.
-@status alpha
--->
-
 <link rel="import" href="../polymer/polymer.html">
 <!-- JavaScript files copied from three.js repository -->
 <script src="js/build/three.min.js"></script>
@@ -20,6 +10,12 @@ HTML imports three.js library
 <script src="js/examples/js/libs/pnltri.min.js"></script>
 <!-- replace built-in triangulation with PnlTri.js -->
 <script>
+/**
+ * HTML imports three.js library
+ * @element three-js
+ * @homepage https://github.com/arodic/three-js
+ * @demo http://akirodic.com/components/three-js/demo.html
+ */
 THREE.Shape.Utils.triangulateShape = (function() {
 	var pnlTriangulator = new PNLTRI.Triangulator();
 	return function(contour, holes) {
