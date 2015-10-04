@@ -15,7 +15,7 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
 */
 
 
-(function(){
+( function() {
 
   var currentHost;
 
@@ -23,9 +23,10 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
   /**
    * This function creates a single shared WebGLRenderer.
    */
-  var _initWebGLRenderer = function(parameters) {
-    if (!renderer) {
-      renderer = new THREE.WebGLRenderer(parameters);
+  var _initWebGLRenderer = function( parameters ) {
+    if ( !renderer ) {
+      parameters.preserveDrawingBuffer = true;
+      renderer = new THREE.WebGLRenderer( parameters );
       renderer.domElement.className = 'three-renderer';
       gl = renderer.getContext();
     }
@@ -41,19 +42,21 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
    * It is designed to detect if migration feature is overrused by the user.
    */
   var _performanceCheck = function() {
-    if (ctxPerfWarned) return;
+    if ( ctxPerfWarned ) return;
     ctxPerfDelta = performance.now() - ctxPerfNow;
-    ctxPerfAverage = Math.min((ctxPerfAverage * 10 + ctxPerfDelta) / 11, 1000);
+    ctxPerfAverage = Math.min( ( ctxPerfAverage * 10 + ctxPerfDelta ) / 11, 1000 );
     ctxPerfNow = performance.now();
-    if (ctxPerfAverage < 16) {
-      console.warn('WebGLSharedRenderers Performance warning: rendering multiple canvases!');
+    if ( ctxPerfAverage < 16 ) {
+      console.warn( 'WebGLSharedRenderer performance warning: rendering multiple canvases!' );
       ctxPerfWarned = true;
     }
   };
 
-  THREE.WebGLSharedRenderer = function (parameters) {
+  THREE.WebGLSharedRenderer = function ( parameters ) {
 
-    _initWebGLRenderer(parameters);
+    parameters = parameters || {};
+
+    _initWebGLRenderer( parameters );
 
     this._canvas2d = document.createElement( 'canvas' );
     this._context2d = this._canvas2d.getContext( '2d' );
@@ -65,8 +68,6 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
     this.height = this._canvas2d.height;
     this.domElement.style.width = this.width + 'px';
     this.domElement.style.height = this.height + 'px';
-    this._canvas2d.style.width = this.width + 'px';
-    this._canvas2d.style.height = this.height + 'px';
 
   	this.context = gl;
 
@@ -92,37 +93,40 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
     */
     this.render = function () {
       this._setHost();
-      renderer.render.apply(renderer, arguments);
+      renderer.render.apply( renderer, arguments );
     };
 
     this.setViewport = function() {
-      this._setHost();
-      renderer.setViewport.apply(renderer, arguments);
+      renderer.setViewport.apply( renderer, arguments );
+    };
+
+    this.setPixelRatio = function() {
+      renderer.setPixelRatio.apply( renderer, arguments );
     };
 
     this.clear = function() {
       this._setHost();
-      renderer.clear.apply(renderer, arguments);
+      renderer.clear.apply( renderer, arguments );
     };
 
     this.clearColor = function () {
       this._setHost();
-      renderer.clearColor.apply(renderer, arguments);
+      renderer.clearColor.apply( renderer, arguments );
   	};
 
   	this.clearDepth = function () {
       this._setHost();
-      renderer.clearDepth.apply(renderer, arguments);
+      renderer.clearDepth.apply( renderer, arguments );
   	};
 
   	this.clearStencil = function () {
       this._setHost();
-      renderer.clearStencil.apply(renderer, arguments);
+      renderer.clearStencil.apply( renderer, arguments );
   	};
 
     this.clearTarget = function () {
       this._setHost();
-      renderer.clearTarget.apply(renderer, arguments);
+      renderer.clearTarget.apply( renderer, arguments );
   	};
 
     this._update = function() {
@@ -141,46 +145,46 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
       renderer.setClearAlpha( _clearAlpha );
     };
 
-    this.setSize = function(width, height) {
+    this.setSize = function( width, height ) {
       this.width = width;
       this.height = height;
+      this._canvas2d.width = width;
+      this._canvas2d.height = height;
       this.domElement.style.width = width + 'px';
       this.domElement.style.height = height + 'px';
-      this._canvas2d.style.width = width + 'px';
-      this._canvas2d.style.height = height + 'px';
-      renderer.setSize(width, height);
+      renderer.setSize( width, height );
     };
 
-    this.setClearColor = function (clearColor) {
+    this.setClearColor = function ( clearColor ) {
       _clearColor = clearColor;
     };
 
-    this.setClearAplha = function (clearAlpha) {
+    this.setClearAplha = function ( clearAlpha ) {
       _clearAlpha = clearAlpha;
     };
 
-    this.getClearColor = function (clearColor) {
+    this.getClearColor = function ( clearColor ) {
       return _clearColor;
     };
 
-    this.getClearAplha = function (clearAlpha) {
+    this.getClearAplha = function ( clearAlpha ) {
       return _clearAlpha;
     };
 
     this._setHost = function() {
-      if (this !== currentHost) {
+      if ( this !== currentHost ) {
         _performanceCheck();
-        if (currentHost) {
+        if ( currentHost ) {
           currentHost._canvas2d.style.display = 'inline-block';
-          currentHost._context2d.drawImage(renderer.domElement, 0, 0, currentHost._canvas2d.width, currentHost._canvas2d.height);
+          currentHost._context2d.drawImage( renderer.domElement, 0, 0, currentHost._canvas2d.width, currentHost._canvas2d.height );
           gl.flush();
         }
         currentHost = this;
-        this.domElement.appendChild(renderer.domElement);
+        this.domElement.appendChild( renderer.domElement );
         this._canvas2d.style.display = 'none';
-        this._update();
+        this.setSize( this.width, this.height );
       }
-      this.setSize(this.width, this.height);
+      this._update();
     };
 
   };

@@ -3914,7 +3914,7 @@ THREE.Box2.prototype = {
 		};
 
 	}(),
-	
+
 	clone: function () {
 
 		return new this.constructor().copy( this );
@@ -11788,7 +11788,7 @@ THREE.EventDispatcher.prototype.apply( THREE.InstancedBufferGeometry.prototype )
 /**
  *
  * A clip that has been explicitly scheduled.
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -11826,7 +11826,7 @@ THREE.AnimationAction.prototype = {
 		this.localRoot = localRoot;
 
 		return this;
-		
+
 	},
 
 	updateTime: function( clipDeltaTime ) {
@@ -11836,14 +11836,14 @@ THREE.AnimationAction.prototype = {
    		var previousActionTime = this.actionTime;
 
 		var duration = this.clip.duration;
-	
+
 		this.actionTime = this.actionTime + clipDeltaTime;
-	
+
 		if( this.loop === THREE.LoopOnce ) {
 
 			this.loopCount = 0;
 			this.clipTime = Math.min( Math.max( this.actionTime, 0 ), duration );
-	
+
 			// if time is changed since last time, see if we have hit a start/end limit
 			if( this.clipTime !== previousClipTime ) {
 
@@ -11860,16 +11860,16 @@ THREE.AnimationAction.prototype = {
 
 			}
 
-		
+
 			return this.clipTime;
 
 		}
-		
+
 		this.loopCount = Math.floor( this.actionTime / duration );
-	
+
 		var newClipTime = this.actionTime - this.loopCount * duration;
 		newClipTime = newClipTime % duration;
-	
+
 		// if we are ping pong looping, ensure that we go backwards when appropriate
 		if( this.loop == THREE.LoopPingPong ) {
 
@@ -11888,7 +11888,7 @@ THREE.AnimationAction.prototype = {
    			this.mixer.dispatchEvent( { type: 'loop', action: this, loopDelta: ( this.loopCount - this.loopCount ) } );
 
    		}
-	
+
 	   	return this.clipTime;
 
 	},
@@ -11923,7 +11923,7 @@ THREE.AnimationAction.prototype = {
 		var clipResults = this.clip.getAt( this.clipTime );
 
 		return clipResults;
-		
+
 	},
 
 	getTimeScaleAt: function( time ) {
@@ -11957,7 +11957,7 @@ THREE.AnimationAction.prototype = {
 /**
  *
  * Reusable set of Tracks that represent an animation.
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -11982,7 +11982,7 @@ THREE.AnimationClip = function ( name, duration, tracks ) {
 	this.optimize();
 
 	this.results = [];
-	
+
 };
 
 THREE.AnimationClip.prototype = {
@@ -12078,7 +12078,7 @@ THREE.AnimationClip.findByName = function( clipArray, name ) {
 };
 
 THREE.AnimationClip.CreateClipsFromMorphTargetSequences = function( morphTargets, fps ) {
-	
+
 	var animationToMorphTargets = {};
 
 	// tested with https://regex101.com/ on trick sequences such flamingo_flyA_003, flamingo_run1_003, crdeath0059
@@ -12089,7 +12089,7 @@ THREE.AnimationClip.CreateClipsFromMorphTargetSequences = function( morphTargets
 
 		var morphTarget = morphTargets[ i ];
 		var parts = morphTarget.name.match( pattern );
-	
+
 		if ( parts && parts.length > 1 ) {
 
 			var name = parts[ 1 ];
@@ -12152,12 +12152,12 @@ THREE.AnimationClip.parseAnimation = function( animation, bones, nodeName ) {
 
 				keys.push( { time: animationKey.time, value: animationKeyToValueFunc( animationKey ) } );
 			}
-	
+
 		}
 
 		// only return track if there are actually keys.
 		if( keys.length > 0 ) {
-		
+
 			return new trackType( trackName, keys );
 
 		}
@@ -12212,7 +12212,7 @@ THREE.AnimationClip.parseAnimation = function( animation, bones, nodeName ) {
 							time: animationKey.time,
 							value: (( animationKey.morphTarget === morphTargetName ) ? 1 : 0 )
 						});
-				
+
 				}
 
 				tracks.push( new THREE.NumberKeyframeTrack( nodeName + '.morphTargetInfluence[' + morphTargetName + ']', keys ) );
@@ -12225,14 +12225,14 @@ THREE.AnimationClip.parseAnimation = function( animation, bones, nodeName ) {
 		else {
 
 			var boneName = nodeName + '.bones[' + bones[ h ].name + ']';
-		
+
 			// track contains positions...
 			var positionTrack = convertTrack( boneName + '.position', animationKeys, 'pos', THREE.VectorKeyframeTrack, function( animationKey ) {
 					return new THREE.Vector3().fromArray( animationKey.pos )
 				} );
 
 			if( positionTrack ) tracks.push( positionTrack );
-			
+
 			// track contains quaternions...
 			var quaternionTrack = convertTrack( boneName + '.quaternion', animationKeys, 'rot', THREE.QuaternionKeyframeTrack, function( animationKey ) {
 					if( animationKey.rot.slerp ) {
@@ -12308,19 +12308,19 @@ THREE.AnimationMixer.prototype = {
 
 			var track = tracks[ i ];
 
-			var propertyBindingKey = root.uuid + '-' + track.name;			
+			var propertyBindingKey = root.uuid + '-' + track.name;
 			var propertyBinding = this.propertyBindingMap[ propertyBindingKey ];
 
 			if( propertyBinding === undefined ) {
-			
+
 				propertyBinding = new THREE.PropertyBinding( root, track.name );
 				this.propertyBindingMap[ propertyBindingKey ] = propertyBinding;
-			
+
 			}
 
 			// push in the same order as the tracks.
 			action.propertyBindings.push( propertyBinding );
-			
+
 			// track usages of shared property bindings, because if we leave too many around, the mixer can get slow
 			propertyBinding.referenceCount += 1;
 
@@ -12333,7 +12333,7 @@ THREE.AnimationMixer.prototype = {
 		for( var i = 0; i < this.actions.length; i ++ ) {
 
 			this.actions[i].mixer = null;
-			
+
 		}
 
 		// unbind all property bindings
@@ -12367,12 +12367,12 @@ THREE.AnimationMixer.prototype = {
 		var tracks = action.clip.tracks;
 
 		for( var i = 0; i < tracks.length; i ++ ) {
-		
+
 			var track = tracks[ i ];
 
-			var propertyBindingKey = root.uuid + '-' + track.name;			
+			var propertyBindingKey = root.uuid + '-' + track.name;
 			var propertyBinding = this.propertyBindingMap[ propertyBindingKey ];
-	
+
 			propertyBinding.referenceCount -= 1;
 
 			if( propertyBinding.referenceCount <= 0 ) {
@@ -12416,7 +12416,7 @@ THREE.AnimationMixer.prototype = {
 
 		keys.push( { time: this.time, value: 1 } );
 		keys.push( { time: this.time + duration, value: 0 } );
-		
+
 		action.weight = new THREE.NumberKeyframeTrack( "weight", keys );
 
 		return this;
@@ -12424,12 +12424,12 @@ THREE.AnimationMixer.prototype = {
 	},
 
 	fadeIn: function( action, duration ) {
-		
+
 		var keys = [];
-		
+
 		keys.push( { time: this.time, value: 0 } );
 		keys.push( { time: this.time + duration, value: 1 } );
-		
+
 		action.weight = new THREE.NumberKeyframeTrack( "weight", keys );
 
 		return this;
@@ -12439,10 +12439,10 @@ THREE.AnimationMixer.prototype = {
 	warp: function( action, startTimeScale, endTimeScale, duration ) {
 
 		var keys = [];
-		
+
 		keys.push( { time: this.time, value: startTimeScale } );
 		keys.push( { time: this.time + duration, value: endTimeScale } );
-		
+
 		action.timeScale = new THREE.NumberKeyframeTrack( "timeScale", keys );
 
 		return this;
@@ -12455,7 +12455,7 @@ THREE.AnimationMixer.prototype = {
 		this.fadeIn( fadeInAction, duration );
 
 		if( warp ) {
-	
+
 			var startEndRatio = fadeOutAction.clip.duration / fadeInAction.clip.duration;
 			var endStartRatio = 1.0 / startEndRatio;
 
@@ -12465,7 +12465,7 @@ THREE.AnimationMixer.prototype = {
 		}
 
 		return this;
-		
+
 	},
 
 	update: function( deltaTime ) {
@@ -12481,7 +12481,7 @@ THREE.AnimationMixer.prototype = {
 
 			var actionTimeScale = action.getTimeScaleAt( this.time );
 			var actionDeltaTime = mixerDeltaTime * actionTimeScale;
-		
+
 			var actionResults = action.update( actionDeltaTime );
 
 			if( action.weight <= 0 || ! action.enabled ) continue;
@@ -12495,7 +12495,7 @@ THREE.AnimationMixer.prototype = {
 			}
 
 		}
-	
+
 		// apply to nodes
 		for( var propertyBindingKey in this.propertyBindingMap ) {
 
@@ -12504,7 +12504,7 @@ THREE.AnimationMixer.prototype = {
 		}
 
 		return this;
-		
+
 	}
 
 };
@@ -12529,7 +12529,7 @@ THREE.EventDispatcher.prototype.apply( THREE.AnimationMixer.prototype );
 		}
 
 		return function equals_primitive( a, b ) {
-			return ( a === b );	
+			return ( a === b );
 		};
 
 	},
@@ -12559,7 +12559,7 @@ THREE.EventDispatcher.prototype.apply( THREE.AnimationMixer.prototype );
 	lerp_object: function( a, b, alpha ) {
 		return a.lerp( b, alpha );
 	},
-	
+
 	slerp_object: function( a, b, alpha ) {
 		return a.slerp( b, alpha );
 	},
@@ -12575,13 +12575,13 @@ THREE.EventDispatcher.prototype.apply( THREE.AnimationMixer.prototype );
 	lerp_boolean_immediate: function( a, b, alpha ) {
 		return a;
 	},
-	
+
 	lerp_string: function( a, b, alpha ) {
 		return ( alpha < 0.5 ) ? a : b;
 	},
-	
+
 	lerp_string_immediate: function( a, b, alpha ) {
- 		return a;		 		
+ 		return a;
  	},
 
 	// NOTE: this is an accumulator function that modifies the first argument (e.g. a).  This is to minimize memory alocations.
@@ -12607,7 +12607,7 @@ THREE.EventDispatcher.prototype.apply( THREE.AnimationMixer.prototype );
 			}
 		 	case "number": {
 				return THREE.AnimationUtils.lerp_number;
-		 	}	
+		 	}
 		 	case "boolean": {
 		 		if( interTrack ) {
 					return THREE.AnimationUtils.lerp_boolean;
@@ -12627,7 +12627,7 @@ THREE.EventDispatcher.prototype.apply( THREE.AnimationMixer.prototype );
 		};
 
 	}
-	
+
 };
 // File:src/animation/KeyframeTrack.js
 
@@ -12910,7 +12910,7 @@ THREE.KeyframeTrack.GetTrackTypeForTypeName = function( typeName ) {
 /**
  *
  * A track bound to a real value in the scene graph.
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -12932,7 +12932,7 @@ THREE.PropertyBinding = function ( rootNode, trackName ) {
 	this.propertyIndex = parseResults.propertyIndex;
 
 	this.node = THREE.PropertyBinding.findNode( rootNode, this.nodeName ) || rootNode;
-	
+
 	this.cumulativeValue = null;
 	this.cumulativeWeight = 0;
 };
@@ -12949,7 +12949,7 @@ THREE.PropertyBinding.prototype = {
 	},
 
 	accumulate: function( value, weight ) {
-		
+
 		if( ! this.isBound ) this.bind();
 
 		if( this.cumulativeWeight === 0 ) {
@@ -12984,7 +12984,7 @@ THREE.PropertyBinding.prototype = {
 		this.getValue = null;
 		this.lerpValue = null;
 		this.equalsValue = null;
-		this.triggerDirty = null;	
+		this.triggerDirty = null;
 		this.isBound = false;
 
 	},
@@ -13007,11 +13007,11 @@ THREE.PropertyBinding.prototype = {
 			if( this.objectName === "materials" ) {
 				if( ! targetObject.material ) {
 					console.error( '  can not bind to material as node does not have a material', this );
-					return;				
+					return;
 				}
 				if( ! targetObject.material.materials ) {
 					console.error( '  can not bind to material.materials as node.material does not have a materials array', this );
-					return;				
+					return;
 				}
 				targetObject = targetObject.material.materials;
 			}
@@ -13021,7 +13021,7 @@ THREE.PropertyBinding.prototype = {
 					return;
 				}
 				// potential future optimization: skip this if propertyIndex is already an integer, and convert the integer string to a true integer.
-				
+
 				targetObject = targetObject.skeleton.bones;
 
 				// support resolving morphTarget names into indices.
@@ -13035,16 +13035,16 @@ THREE.PropertyBinding.prototype = {
 			else {
 
 				if( targetObject[ this.objectName ] === undefined ) {
-					console.error( '  can not bind to objectName of node, undefined', this );			
+					console.error( '  can not bind to objectName of node, undefined', this );
 					return;
 				}
 				targetObject = targetObject[ this.objectName ];
 			}
-			
+
 			if( this.objectIndex !== undefined ) {
 				if( targetObject[ this.objectIndex ] === undefined ) {
 					console.error( "  trying to bind to objectIndex of objectName, but is undefined:", this, targetObject );
-					return;				
+					return;
 				}
 
 				targetObject = targetObject[ this.objectIndex ];
@@ -13055,7 +13055,7 @@ THREE.PropertyBinding.prototype = {
  		// special case mappings
  		var nodeProperty = targetObject[ this.propertyName ];
 		if( ! nodeProperty ) {
-			console.error( "  trying to update property for track: " + this.nodeName + '.' + this.propertyName + " but it wasn't found.", targetObject );				
+			console.error( "  trying to update property for track: " + this.nodeName + '.' + this.propertyName + " but it wasn't found.", targetObject );
 			return;
 		}
 
@@ -13064,15 +13064,15 @@ THREE.PropertyBinding.prototype = {
 
 			if( this.propertyName === "morphTargetInfluences" ) {
 				// potential optimization, skip this if propertyIndex is already an integer, and convert the integer string to a true integer.
-				
+
 				// support resolving morphTarget names into indices.
 				if( ! targetObject.geometry ) {
-					console.error( '  can not bind to morphTargetInfluences becasuse node does not have a geometry', this );				
+					console.error( '  can not bind to morphTargetInfluences becasuse node does not have a geometry', this );
 				}
 				if( ! targetObject.geometry.morphTargets ) {
-					console.error( '  can not bind to morphTargetInfluences becasuse node does not have a geometry.morphTargets', this );				
+					console.error( '  can not bind to morphTargetInfluences becasuse node does not have a geometry.morphTargets', this );
 				}
-				
+
 				for( var i = 0; i < this.node.geometry.morphTargets.length; i ++ ) {
 					if( targetObject.geometry.morphTargets[i].name === this.propertyIndex ) {
 						this.propertyIndex = i;
@@ -13094,9 +13094,9 @@ THREE.PropertyBinding.prototype = {
 			};
 
 		}
-		// must use copy for Object3D.Euler/Quaternion		
+		// must use copy for Object3D.Euler/Quaternion
 		else if( nodeProperty.copy ) {
-			
+
 			this.setValue = function setValue_propertyObject( value ) {
 				if( ! this.equalsValue( nodeProperty, value ) ) {
 					nodeProperty.copy( value );
@@ -13115,7 +13115,7 @@ THREE.PropertyBinding.prototype = {
 
 			this.setValue = function setValue_property( value ) {
 				if( ! this.equalsValue( targetObject[ this.propertyName ], value ) ) {
-					targetObject[ this.propertyName ] = value;	
+					targetObject[ this.propertyName ] = value;
 					return true;
 				}
 				return false;
@@ -13127,16 +13127,16 @@ THREE.PropertyBinding.prototype = {
 
 		}
 
-		// trigger node dirty			
+		// trigger node dirty
 		if( targetObject.needsUpdate !== undefined ) { // material
-			
+
 			this.triggerDirty = function triggerDirty_needsUpdate() {
 				this.node.needsUpdate = true;
 			}
 
-		}			
+		}
 		else if( targetObject.matrixWorldNeedsUpdate !== undefined ) { // node transform
-			
+
 			this.triggerDirty = function triggerDirty_matrixWorldNeedsUpdate() {
 				targetObject.matrixWorldNeedsUpdate = true;
 			}
@@ -13159,7 +13159,7 @@ THREE.PropertyBinding.prototype = {
 
 		// early exit if there is nothing to apply.
 		if( this.cumulativeWeight > 0 ) {
-		
+
 			// blend with original value
 			if( this.cumulativeWeight < 1 ) {
 
@@ -13198,7 +13198,7 @@ THREE.PropertyBinding.parseTrackName = function( trackName ) {
 	//	  .bone[Armature.DEF_cog].position
 	// created and tested via https://regex101.com/#javascript
 
-	var re = /^(([\w]+\/)*)([\w-\d]+)?(\.([\w]+)(\[([\w\d\[\]\_. ]+)\])?)?(\.([\w.]+)(\[([\w\d\[\]\_. ]+)\])?)$/; 
+	var re = /^(([\w]+\/)*)([\w-\d]+)?(\.([\w]+)(\[([\w\d\[\]\_. ]+)\])?)?(\.([\w.]+)(\[([\w\d\[\]\_. ]+)\])?)$/;
 	var matches = re.exec(trackName);
 
 	if( ! matches ) {
@@ -13284,7 +13284,7 @@ THREE.PropertyBinding.findNode = function( root, nodeName ) {
 
 			}
 
-			return null;	
+			return null;
 
 		};
 
@@ -13306,7 +13306,7 @@ THREE.PropertyBinding.findNode = function( root, nodeName ) {
 /**
  *
  * A Track that interpolates Vectors
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -13349,7 +13349,7 @@ THREE.VectorKeyframeTrack.prototype.clone = function() {
 	var clonedKeys = [];
 
 	for( var i = 0; i < this.keys.length; i ++ ) {
-		
+
 		var key = this.keys[i];
 		clonedKeys.push( {
 			time: key.time,
@@ -13379,13 +13379,13 @@ THREE.VectorKeyframeTrack.parse = function( json ) {
 	return new THREE.VectorKeyframeTrack( json.name, keys );
 
 };
- 
+
 // File:src/animation/tracks/QuaternionKeyframeTrack.js
 
 /**
  *
  * A Track that interpolates Quaternion
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -13398,7 +13398,7 @@ THREE.QuaternionKeyframeTrack = function ( name, keys ) {
 	this.result = this.keys[0].value.clone();
 
 };
- 
+
 THREE.QuaternionKeyframeTrack.prototype = Object.create( THREE.KeyframeTrack.prototype );
 
 THREE.QuaternionKeyframeTrack.prototype.constructor = THREE.QuaternionKeyframeTrack;
@@ -13428,7 +13428,7 @@ THREE.QuaternionKeyframeTrack.prototype.multiply = function( quat ) {
 	for( var i = 0; i < this.keys.length; i ++ ) {
 
 		this.keys[i].value.multiply( quat );
-		
+
 	}
 
 	return this;
@@ -13440,7 +13440,7 @@ THREE.QuaternionKeyframeTrack.prototype.clone = function() {
 	var clonedKeys = [];
 
 	for( var i = 0; i < this.keys.length; i ++ ) {
-		
+
 		var key = this.keys[i];
 		clonedKeys.push( {
 			time: key.time,
@@ -13467,13 +13467,13 @@ THREE.QuaternionKeyframeTrack.parse = function( json ) {
 	return new THREE.QuaternionKeyframeTrack( json.name, keys );
 
 };
- 
+
 // File:src/animation/tracks/StringKeyframeTrack.js
 
 /**
  *
  * A Track that interpolates Strings
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -13516,7 +13516,7 @@ THREE.StringKeyframeTrack.prototype.clone = function() {
 	var clonedKeys = [];
 
 	for( var i = 0; i < this.keys.length; i ++ ) {
-		
+
 		var key = this.keys[i];
 		clonedKeys.push( {
 			time: key.time,
@@ -13533,13 +13533,13 @@ THREE.StringKeyframeTrack.parse = function( json ) {
 	return new THREE.StringKeyframeTrack( json.name, json.keys );
 
 };
- 
+
 // File:src/animation/tracks/BooleanKeyframeTrack.js
 
 /**
  *
  * A Track that interpolates Boolean
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -13582,7 +13582,7 @@ THREE.BooleanKeyframeTrack.prototype.clone = function() {
 	var clonedKeys = [];
 
 	for( var i = 0; i < this.keys.length; i ++ ) {
-		
+
 		var key = this.keys[i];
 		clonedKeys.push( {
 			time: key.time,
@@ -13599,13 +13599,13 @@ THREE.BooleanKeyframeTrack.parse = function( json ) {
 	return new THREE.BooleanKeyframeTrack( json.name, json.keys );
 
 };
- 
+
 // File:src/animation/tracks/NumberKeyframeTrack.js
 
 /**
  *
  * A Track that interpolates Numbers
- * 
+ *
  * @author Ben Houston / http://clara.io/
  * @author David Sarno / http://lighthaus.us/
  */
@@ -13648,7 +13648,7 @@ THREE.NumberKeyframeTrack.prototype.clone = function() {
 	var clonedKeys = [];
 
 	for( var i = 0; i < this.keys.length; i ++ ) {
-		
+
 		var key = this.keys[i];
 		clonedKeys.push( {
 			time: key.time,
@@ -13665,7 +13665,7 @@ THREE.NumberKeyframeTrack.parse = function( json ) {
 	return new THREE.NumberKeyframeTrack( json.name, json.keys );
 
 };
- 
+
 // File:src/cameras/Camera.js
 
 /**
@@ -13865,20 +13865,20 @@ THREE.OrthographicCamera.prototype.updateProjectionMatrix = function () {
 };
 
 THREE.OrthographicCamera.prototype.copy = function ( source ) {
-	
+
 	THREE.Camera.prototype.copy.call( this, source );
-	
+
 	this.left = source.left;
 	this.right = source.right;
 	this.top = source.top;
 	this.bottom = source.bottom;
 	this.near = source.near;
 	this.far = source.far;
-	
+
 	this.zoom = source.zoom;
-	
+
 	return this;
-		
+
 };
 
 THREE.OrthographicCamera.prototype.toJSON = function ( meta ) {
@@ -13924,7 +13924,6 @@ THREE.PerspectiveCamera = function ( fov, aspect, near, far ) {
 
 THREE.PerspectiveCamera.prototype = Object.create( THREE.Camera.prototype );
 THREE.PerspectiveCamera.prototype.constructor = THREE.PerspectiveCamera;
-
 
 /**
  * Uses Focal Length (in mm) to estimate and set FOV
@@ -14024,18 +14023,18 @@ THREE.PerspectiveCamera.prototype.updateProjectionMatrix = function () {
 };
 
 THREE.PerspectiveCamera.prototype.copy = function ( source ) {
-	
+
 	THREE.Camera.prototype.copy.call( this, source );
-	
+
 	this.fov = source.fov;
 	this.aspect = source.aspect;
 	this.near = source.near;
 	this.far = source.far;
-	
+
 	this.zoom = source.zoom;
-	
+
 	return this;
-		
+
 };
 
 THREE.PerspectiveCamera.prototype.toJSON = function ( meta ) {
@@ -14073,11 +14072,11 @@ THREE.Light.prototype = Object.create( THREE.Object3D.prototype );
 THREE.Light.prototype.constructor = THREE.Light;
 
 THREE.Light.prototype.copy = function ( source ) {
-	
+
 	THREE.Object3D.prototype.copy.call( this, source );
-	
+
 	this.color.copy( source.color );
-	
+
 	return this;
 
 };
@@ -15078,7 +15077,7 @@ THREE.JSONLoader.prototype = {
 	constructor: THREE.JSONLoader,
 
 	// Deprecated
-	
+
 	get statusDomElement () {
 
 		if ( this._statusDomElement === undefined ) {
@@ -17220,7 +17219,7 @@ THREE.LineDashedMaterial.prototype.copy = function ( source ) {
 	THREE.Material.prototype.copy.call( this, source );
 
 	this.color.copy( source.color );
-	
+
 	this.linewidth = source.linewidth;
 
 	this.scale = source.scale;
@@ -17319,7 +17318,7 @@ THREE.MeshBasicMaterial.prototype = Object.create( THREE.Material.prototype );
 THREE.MeshBasicMaterial.prototype.constructor = THREE.MeshBasicMaterial;
 
 THREE.MeshBasicMaterial.prototype.copy = function ( source ) {
-	
+
 	THREE.Material.prototype.copy.call( this, source );
 
 	this.color.copy( source.color );
@@ -17351,7 +17350,7 @@ THREE.MeshBasicMaterial.prototype.copy = function ( source ) {
 
 	this.skinning = source.skinning;
 	this.morphTargets = source.morphTargets;
-	
+
 	return this;
 
 };
@@ -18431,9 +18430,9 @@ THREE.CubeTexture.prototype.constructor = THREE.CubeTexture;
 THREE.CubeTexture.prototype.copy = function ( source ) {
 
 	THREE.Texture.prototype.copy.call( this, source );
-	
+
 	this.images = source.images;
-	
+
 	return this;
 
 };
@@ -18479,7 +18478,7 @@ THREE.DataTexture = function ( data, width, height, format, type, mapping, wrapS
 
 	this.magFilter = magFilter !== undefined ? magFilter : THREE.NearestFilter;
 	this.minFilter = minFilter !== undefined ? minFilter : THREE.NearestFilter;
-	
+
 	this.flipY = false;
 	this.generateMipmaps  = false;
 
@@ -19346,11 +19345,11 @@ THREE.Bone.prototype = Object.create( THREE.Object3D.prototype );
 THREE.Bone.prototype.constructor = THREE.Bone;
 
 THREE.Bone.prototype.copy = function ( source ) {
-	
+
 	THREE.Object3D.prototype.copy.call( this, source );
-	
+
 	this.skin = source.skin;
-	
+
 	return this;
 
 };
@@ -19387,7 +19386,7 @@ THREE.Skeleton = function ( bones, boneInverses, useVertexTexture ) {
 		//       32x32 pixel texture max  256 bones * 4 pixels = (32 * 32)
 		//       64x64 pixel texture max 1024 bones * 4 pixels = (64 * 64)
 
-		
+
 		var size = Math.sqrt( this.bones.length * 4 ); // 4 pixels needed for 1 matrix
 		size = THREE.Math.nextPowerOfTwo( Math.ceil( size ) );
 		size = Math.max( size, 4 );
@@ -19613,7 +19612,7 @@ THREE.SkinnedMesh.prototype.bind = function( skeleton, bindMatrix ) {
 	if ( bindMatrix === undefined ) {
 
 		this.updateMatrixWorld( true );
-		
+
 		this.skeleton.calculateInverses();
 
 		bindMatrix = this.matrixWorld;
@@ -23503,7 +23502,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 						uniforms.shadowDarkness.value[ j ] = - light.shadowDarkness;
 
 					} else {
-						
+
 						uniforms.shadowDarkness.value[ j ] = light.shadowDarkness;
 
 					}
@@ -26251,7 +26250,7 @@ THREE.WebGLPrograms = function ( renderer, capabilities ) {
 		"flatShading", "sizeAttenuation", "logarithmicDepthBuffer", "skinning",
 		"maxBones", "useVertexTexture", "morphTargets", "morphNormals",
 		"maxMorphTargets", "maxMorphNormals", "maxDirLights", "maxPointLights",
-		"maxSpotLights", "maxHemiLights", "maxShadows", "shadowMapEnabled", "pointLightShadows", 
+		"maxSpotLights", "maxHemiLights", "maxShadows", "shadowMapEnabled", "pointLightShadows",
 		"shadowMapType", "shadowMapDebug", "alphaTest", "metal", "doubleSided",
 		"flipSided"
 	];
@@ -26336,7 +26335,7 @@ THREE.WebGLPrograms = function ( renderer, capabilities ) {
 				maxShadows ++;
 				pointLightShadows ++;
 
-			} 
+			}
 
 		}
 
@@ -30545,7 +30544,7 @@ THREE.Path.prototype.getPoints = function( divisions, closedPath ) {
 
 			var cos, sin;
 			if ( aRotation !== 0 ) {
-		
+
 				cos = Math.cos( aRotation );
 				sin = Math.sin( aRotation );
 
@@ -31759,7 +31758,7 @@ THREE.EllipseCurve = function ( aX, aY, xRadius, yRadius, aStartAngle, aEndAngle
 	this.aEndAngle = aEndAngle;
 
 	this.aClockwise = aClockwise;
-	
+
 	this.aRotation = aRotation || 0;
 
 };
@@ -31785,7 +31784,7 @@ THREE.EllipseCurve.prototype.getPoint = function ( t ) {
 		angle = this.aStartAngle + t * deltaAngle;
 
 	}
-	
+
 	var x = this.aX + this.xRadius * Math.cos( angle );
 	var y = this.aY + this.yRadius * Math.sin( angle );
 
@@ -33623,7 +33622,7 @@ THREE.ShapeGeometry.prototype.addShape = function ( shape, options ) {
  * @author bhouston / http://clara.io
  */
 
-// points - to create a closed torus, one must use a set of points 
+// points - to create a closed torus, one must use a set of points
 //    like so: [ a, b, c, d, a ], see first is the same as last.
 // segments - the number of circumference segments to create
 // phiStart - the starting radian
@@ -35577,7 +35576,7 @@ THREE.ArrowHelper = ( function () {
 		if ( headWidth === undefined ) headWidth = 0.2 * headLength;
 
 		this.position.copy( origin );
-		
+
 		if ( headLength < length ) {
 			this.line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color: color } ) );
 			this.line.matrixAutoUpdate = false;
@@ -37030,4 +37029,3 @@ THREE.MorphBlendMesh.prototype.update = function ( delta ) {
 	}
 
 };
-
