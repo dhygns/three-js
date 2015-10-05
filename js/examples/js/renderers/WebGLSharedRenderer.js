@@ -146,6 +146,7 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
     };
 
     this.setSize = function( width, height ) {
+      this._setHost();
       this.width = width;
       this.height = height;
       this._canvas2d.width = width;
