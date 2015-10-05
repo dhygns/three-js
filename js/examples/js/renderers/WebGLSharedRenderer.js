@@ -69,23 +69,23 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
     this.domElement.style.width = this.width + 'px';
     this.domElement.style.height = this.height + 'px';
 
-  	this.context = gl;
+    this.context = gl;
 
-  	this.autoClear = true;
-  	this.autoClearColor = true;
-  	this.autoClearDepth = true;
-  	this.autoClearStencil = true;
-  	this.sortObjects = true;
-  	this.gammaFactor = 2.0;	// for backwards compatibility
-  	this.gammaInput = false;
-  	this.gammaOutput = false;
+    this.autoClear = true;
+    this.autoClearColor = true;
+    this.autoClearDepth = true;
+    this.autoClearStencil = true;
+    this.sortObjects = true;
+    this.gammaFactor = 2.0;	// for backwards compatibility
+    this.gammaInput = false;
+    this.gammaOutput = false;
     this.sortObjects = true;
     this.maxMorphTargets = 8;
-  	this.maxMorphNormals = 4;
-  	this.autoScaleCubemaps = true;
+    this.maxMorphNormals = 4;
+    this.autoScaleCubemaps = true;
 
     var _clearColor = new THREE.Color( 0x000000 );
-  	var _clearAlpha = 1;
+    var _clearAlpha = 1;
 
     /**
     * Renderer method that will be available on this element as proxy.
@@ -112,22 +112,22 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
     this.clearColor = function () {
       this._setHost();
       renderer.clearColor.apply( renderer, arguments );
-  	};
+    };
 
-  	this.clearDepth = function () {
+    this.clearDepth = function () {
       this._setHost();
       renderer.clearDepth.apply( renderer, arguments );
-  	};
+    };
 
-  	this.clearStencil = function () {
+    this.clearStencil = function () {
       this._setHost();
       renderer.clearStencil.apply( renderer, arguments );
-  	};
+    };
 
     this.clearTarget = function () {
       this._setHost();
       renderer.clearTarget.apply( renderer, arguments );
-  	};
+    };
 
     this._update = function() {
       renderer.autoClear = this.autoClear;
@@ -139,8 +139,8 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
       renderer.gammaOutput = this.gammaOutput;
       renderer.sortObjects = this.sortObjects;
       renderer.maxMorphTargets = this.maxMorphTargets;
-    	renderer.maxMorphNormals = this.maxMorphNormals;
-    	renderer.autoScaleCubemaps = this.autoScaleCubemaps;
+      renderer.maxMorphNormals = this.maxMorphNormals;
+      renderer.autoScaleCubemaps = this.autoScaleCubemaps;
       renderer.setClearColor( _clearColor );
       renderer.setClearAlpha( _clearAlpha );
     };
