@@ -27,6 +27,7 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
     if ( !renderer ) {
       parameters.preserveDrawingBuffer = true;
       renderer = new THREE.WebGLRenderer( parameters );
+      renderer.setPixelRatio( window.devicePixelRatio );
       renderer.domElement.className = 'three-renderer';
       gl = renderer.getContext();
     }
@@ -149,11 +150,25 @@ THREE.WebGLSharedRenderer in realtime without severe performance penalties.
       this._setHost();
       this.width = width;
       this.height = height;
-      this._canvas2d.width = width;
-      this._canvas2d.height = height;
+
+      var ratio = this._context2d.webkitBackingStorePixelRatio ||
+                  this._context2d.mozBackingStorePixelRatio ||
+                  this._context2d.msBackingStorePixelRatio ||
+                  this._context2d.oBackingStorePixelRatio ||
+                  this._context2d.backingStorePixelRatio || 1;
+
+      this._c2Dratio = (window.devicePixelRatio || 1) / ratio;
+
+      this._canvas2d.width = width * this._c2Dratio;
+      this._canvas2d.height = height * this._c2Dratio;
+      this._canvas2d.style.width = width + 'px';
+      this._canvas2d.style.height = height + 'px';
+
       this.domElement.style.width = width + 'px';
       this.domElement.style.height = height + 'px';
       renderer.setSize( width, height );
+
+
     };
 
     this.setClearColor = function ( clearColor ) {
