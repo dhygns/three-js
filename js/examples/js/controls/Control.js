@@ -4,10 +4,6 @@
 
 ( function () {
 
-  // shared variables
-
-  var rect, pointersOld = [];
-
   THREE.Control = function ( camera, domElement, target ) {
 
     this.camera = ( camera instanceof THREE.Camera ) ? camera : new THREE.Camera();
@@ -20,35 +16,93 @@
 
     this.enabled = true;
 
-    // pointers are expressed in -1 to 1 coordinate space relative to domElement.
-
-    this.pointers = [];
-    this.pointersDelta = [];
-
-    // internal variables
+    // internal variables.
 
     var scope = this;
+    var rect, touches, pointer;
+    var pointers, pointersOld, pointerDeltas, closestPointer;
+
+    // helper functions
+
+    var getPointerVector = function ( x, y ) {
+      rect = scope.domElement.getBoundingClientRect();
+      return new THREE.Vector2(
+        ( x - rect.left ) / rect.width * 2 - 1,
+        1 - ( y - rect.top ) / rect.height * 2
+      );
+    }
+
+    var getClosestPointer = function( point, array ) {
+      closestPointer = array[ 0 ];
+      for ( var i = 1; i < array.length; i++ ) {
+        if ( array[ i ].distanceTo( point ) < closestPointer.distanceTo( point ) ) {
+          closestPointer = array[ i ];
+        }
+      }
+      return closestPointer;
+    };
+
+    this.getPointersFromEvent = function( event, reset ) {
+
+      touches = event.touches ? event.touches : [event];
+
+      pointersOld = reset ? [] : pointers || [];
+      pointers = [];
+      pointerDeltas = [];
+
+      for ( var i = 0; i < touches.length; i++ ) {
+
+        if ( touches[ i ].target === event.path[ 0 ] || event.touches === undefined ) {
+
+          pointer = getPointerVector( touches[ i ].clientX, touches[ i ].clientY );
+          pointers.push( pointer );
+
+          if ( pointersOld[ pointers.length - 1 ] === undefined ) {
+
+            pointersOld.push( pointer.clone() );
+
+          }
+        }
+
+      }
+
+      var data = [];
+
+      for ( var i = 0; i < pointers.length; i++ ) {
+
+        pointerDeltas[ i ] = pointers[ i ].clone().sub( getClosestPointer( pointers[ i ], pointersOld ) )
+        data[ i ] = {
+          position: pointers[ i ],
+          previous: pointersOld[ i ],
+          delta: pointerDeltas[ i ]
+        }
+
+      }
+
+      return data;
+
+    }
 
     // event handlers
 
     function onMouseDown( event ) {
 
-      scope.setPointers(event);
-      console.log('down', scope.pointers);
+      scope.setPointers( event, true );
+      console.log( 'down', scope.pointers );
 
     }
 
     function onTouchstart( event ) {
 
-      scope.setPointers(event);
-      console.log('start', scope.pointers);
+      scope.setPointers( event, true );
+      console.log( 'start', scope.pointers );
 
     }
 
     function onTouchmove( event ) {
 
-      scope.setPointers(event);
-      console.log('move', scope.pointersDelta);
+      scope.setPointers( event );
+      console.log( 'move', scope.pointerDeltas );
 
     }
 
@@ -69,14 +123,6 @@
       element.removeEventListener( 'touchmove', onTouchmove, false );
 
     };
-
-  };
-
-  // hepler functions
-
-  var getClosestPoint = function( point, pointArray ) {
-
-    return ( pointArray.length > 1 && pointArray[ 0 ].distanceTo( point) < pointArray[ 1 ].distanceTo( point) ) ? pointArray[ 0 ] : pointArray[ 1 ];
 
   };
 
@@ -146,66 +192,7 @@
 
     },
 
-    onTargetChangeCallback: function () {},
-
-    setPointers: function( event ) {
-
-      rect = this.domElement.getBoundingClientRect();
-
-      this.pointers = [];
-      this.pointersDelta = [];
-
-      var makePointer = function (clientX, clientY) {
-        return new THREE.Vector2(
-          ( clientX - rect.left ) / rect.width * 2 - 1,
-          ( clientY - rect.top ) / rect.height * 2 - 1
-        );
-      }
-
-      if ( event.touches ) {
-
-        for ( var i = 0; i < event.touches.length; i++ ) {
-
-          if ( event.touches[ i ].target === event.path[ 0 ] ) {
-
-            this.pointers.push( makePointer( event.touches[ i ].pageX, event.touches[ i ].pageY ) );
-
-          }
-
-        }
-
-      } else {
-
-        this.pointers.push( makePointer( event.clientX, event.clientY ) );
-
-      }
-
-      pointersOld.length = Math.min(pointersOld.length, this.pointers.length);
-
-      for (var i = pointersOld.length; i < this.pointers.length; i++) {
-
-        pointersOld.push( this.pointers[i].clone() );
-
-      }
-
-      switch ( this.pointers.length ) {
-
-        case 1:
-          // pointersDelta[ 0 ].subVectors( pointers[ 0 ], getClosestPoint( pointers[ 0 ], pointersOld ) );
-          this.pointersDelta.push(
-              this.pointers[ 0 ].clone().sub( getClosestPoint( this.pointers[ 0 ], pointersOld ) ) );
-          // console.log(pointersDelta[ 0 ])
-          break;
-
-        case 2:
-          // pointersDelta[ 0 ].subVectors( pointers[ 0 ], getClosestPoint( pointers[ 0 ], pointersOld ) );
-          // pointersDelta[ 1 ].subVectors( pointers[ 1 ], getClosestPoint( pointers[ 1 ], pointersOld ) );
-          break;
-      }
-
-      pointersOld = this.pointers;
-
-    }
+    onTargetChangeCallback: function () {}
 
   };
 

@@ -9,6 +9,6 @@ See documentation and examples below for more information.
 
 [DOCS](http://akirodic.com/components/three-js)
 
-[DEMO](http://akirodic.com/components/three-js/demo.html)
+[DEMO](http://akirodic.com/components/three-js/demo/)
 
 ![three-js](http://akirodic.com/components/three-js/preview.png "three-js")

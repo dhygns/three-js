@@ -21,6 +21,8 @@
   var theta, phi, rect, radius, distance, fovFactor;
   var cw, ch, aspect, delta;
 
+  // events
+
   var changeEvent = { type: 'change' };
 
   // Element to be added to body during a drag gesture.
@@ -32,6 +34,8 @@
   clickmask.style.bottom = 0;
   clickmask.style.right = 0;
   clickmask.style.zIndex = 10000000;
+  clickmask.style.cursor = 'move';
+  // clickmask.style.background = 'rgba(255,0,0,0.05)';
 
   THREE.EditorControls = function ( camera, domElement, target ) {
 
@@ -58,62 +62,11 @@
 
     var STATE = { NONE: - 1, ROTATE: 0, ZOOM: 1, PAN: 2 };
     var state = STATE.NONE;
-
-// touch data
-var touches = [];
-// pointers are expressed in -1 to 1 coordinate space relative to domElement.
-var pointers = [ new THREE.Vector2(), new THREE.Vector2() ];
-var pointersOld = [ new THREE.Vector2(), new THREE.Vector2() ];
-var pointersDelta = [ new THREE.Vector2(), new THREE.Vector2() ];
-// hepler functions
-var getClosestPoint = function( point, pointArray ) {
-  if ( pointArray[ 0 ].distanceTo( point) < pointArray[ 1 ].distanceTo( point) ) {
-    return pointArray[ 0 ];
-  }
-  return pointArray[ 1 ];
-};
-
-// var setPointers = function( event ) {
-//   // Set pointes from mouse/touch events and convert to -1 to 1 coordinate space.
-//   rect = domElement.getBoundingClientRect();
-//   // Filter touches that originate from the same element as the event.
-//   touches.length = 0;
-//   if ( event.touches ) {
-//     for ( var i = 0; i < event.touches.length; i++ ) {
-//       if ( event.touches[ i ].target === event.path[ 0 ] ) {
-//         touches.push( event.touches[ i ] );
-//       }
-//     }
-//   }
-//   // Set pointer[0] from mouse event.clientX/Y
-//   if ( touches.length == 0 ) {
-//     pointers[ 0 ].set(
-//       ( event.clientX - rect.left ) / rect.width * 2 - 1,
-//       ( event.clientY - rect.top ) / rect.height * 2 - 1
-//     );
-//   // Set both pointer[0] and pointer[1] from a single touch.
-//   } else if ( touches.length == 1 ) {
-//     pointers[ 0 ].set(
-//       ( touches[ 0 ].pageX - rect.left ) / rect.width * 2 - 1,
-//       ( touches[ 0 ].pageY - rect.top ) / rect.height * 2 - 1
-//     );
-//     pointers[ 1 ].copy( pointers[ 0 ] );
-//   // Set pointer[0] and pointer[1] from two touches.
-//   } else if ( touches.length == 2 ) {
-//     pointers[ 0 ].set(
-//       ( touches[ 0 ].pageX - rect.left ) / rect.width * 2 - 1,
-//       ( touches[ 0 ].pageY - rect.top ) / rect.height * 2 - 1
-//     );
-//     pointers[ 1 ].set(
-//       ( touches[ 1 ].pageX - rect.left ) / rect.width * 2 - 1,
-//       ( touches[ 1 ].pageY - rect.top) / rect.height * 2 - 1
-//     );
-//   }
-// };
+    var pointers;
 
     // event handlers
 
-    function onMouseDown( event ) {
+    function onMousedown( event ) {
 
       if ( scope.enabled === false ) return;
 
@@ -137,58 +90,55 @@ var getClosestPoint = function( point, pointArray ) {
 
       }
 
-      scope.setPointers( event );
+      pointers = scope.getPointersFromEvent( event, true );
 
-      pointersOld[ 0 ].copy( pointers[ 0 ] );
-
-      document.body.appendChild(clickmask);
-      window.addEventListener( 'mousemove', onMouseMove, false );
-      window.addEventListener( 'mouseup', onMouseUp, false );
-      window.addEventListener( 'contextmenu', onContextmenu, false );
+      window.addEventListener( 'mousemove', onMousemove );
+      window.addEventListener( 'mouseup', onMouseup );
+      window.addEventListener( 'contextmenu', onContextmenu );
 
     }
 
-    function onMouseMove( event ) {
+    function onMousemove( event ) {
 
       if ( scope.enabled === false ) return;
 
-      event.preventDefault();
-
-      scope.setPointers( event );
-
-      pointersDelta[ 0 ].subVectors( pointers[ 0 ], pointersOld[ 0 ] );
-      pointersOld[ 0 ].copy( pointers[ 0 ] );
+      pointers = scope.getPointersFromEvent( event );
 
       if ( state === STATE.ROTATE ) {
 
-        scope.rotate( pointersDelta[ 0 ] );
+        scope.rotate( pointers[ 0 ].delta );
 
       } else if ( state === STATE.ZOOM ) {
 
-        scope.zoom( pointersDelta[ 0 ] );
+        scope.zoom( pointers[ 0 ].delta );
 
       } else if ( state === STATE.PAN ) {
 
-        scope.pan( pointersDelta[ 0 ] );
+        scope.pan( pointers[ 0 ].delta );
 
+      }
+
+      if (clickmask.parentNode !== document.body) {
+        document.body.appendChild(clickmask);
       }
 
     }
 
-    function onMouseUp( event ) {
+    function onMouseup( event ) {
+
+      state = STATE.NONE;
 
       if (clickmask.parentNode == document.body) {
         document.body.removeChild(clickmask);
       }
-      window.removeEventListener( 'mousemove', onMouseMove, false );
-      window.removeEventListener( 'mouseup', onMouseUp, false );
-      window.addEventListener( 'contextmenu', onContextmenu, false );
 
-      state = STATE.NONE;
+      window.removeEventListener( 'mousemove', onMousemove );
+      window.removeEventListener( 'mouseup', onMouseup );
+      window.addEventListener( 'contextmenu', onContextmenu );
 
     }
 
-    function onMouseWheel( event ) {
+    function onMousewheel( event ) {
 
       if ( scope.enabled === false ) return;
 
@@ -214,58 +164,58 @@ var getClosestPoint = function( point, pointArray ) {
 
     }
 
-    function touchStart( event ) {
+    function onTouchstart( event ) {
 
       if ( scope.enabled === false ) return;
 
-      scope.setPointers( event );
+      pointers = scope.getPointersFromEvent( event, true );
 
-      pointersOld[ 0 ].copy( pointers[ 0 ] );
-      pointersOld[ 1 ].copy( pointers[ 1 ] );
+      scope.domElement.addEventListener( 'touchmove', onTouchmove );
+      scope.domElement.addEventListener( 'touchend', onTouchend );
 
     }
 
-    function touchMove( event ) {
+    function onTouchmove( event ) {
 
       if ( scope.enabled === false ) return;
 
-      scope.setPointers( event );
+      pointers = scope.getPointersFromEvent( event );
 
-      switch ( touches.length ) {
+      switch ( pointers.length ) {
 
         case 1:
-          pointersDelta[ 0 ].subVectors( pointers[ 0 ], getClosestPoint( pointers[ 0 ], pointersOld ) );
-          pointersDelta[ 1 ].subVectors( pointers[ 1 ], getClosestPoint( pointers[ 1 ], pointersOld ) );
 
-          if ( this.camera instanceof THREE.PerspectiveCamera ) {
+          if ( scope.camera instanceof THREE.PerspectiveCamera ) {
 
-            scope.rotate( pointersDelta[ 0 ] );
+            scope.rotate( pointers[ 0 ].delta );
 
-          } else if ( this.camera instanceof THREE.OrthographicCamera ) {
+          } else if ( scope.camera instanceof THREE.OrthographicCamera ) {
 
-            scope.pan( pointersDelta[ 0 ] );
+            scope.pan( pointers[ 0 ].delta );
 
           }
           break;
 
         case 2:
-          pointersDelta[ 0 ].subVectors( pointers[ 0 ], getClosestPoint( pointers[ 0 ], pointersOld ) );
-          pointersDelta[ 1 ].subVectors( pointers[ 1 ], getClosestPoint( pointers[ 1 ], pointersOld ) );
 
-          var prevDistance = pointersOld[ 0 ].distanceTo( pointersOld[ 1 ] );
-          var distance = pointers[ 0 ].distanceTo( pointers[ 1 ] );
+          var prevDistance = pointers[ 0 ].previous.distanceTo( pointers[ 1 ].previous );
+          var distance = pointers[ 0 ].position.distanceTo( pointers[ 1 ].position );
 
           if ( prevDistance ) {
 
             scope.zoom( new THREE.Vector2(0, prevDistance - distance ) );
-            scope.pan( pointersDelta[ 0 ].clone().add( pointersDelta[ 1 ] ).multiplyScalar(0.5) );
+            scope.pan( pointers[ 0 ].delta.clone().add( pointers[ 1 ].delta ).multiplyScalar(0.5) );
 
           }
           break;
       }
 
-      pointersOld[ 0 ].copy( pointers[ 0 ] );
-      pointersOld[ 1 ].copy( pointers[ 1 ] );
+    }
+
+    function onTouchend() {
+
+      scope.domElement.removeEventListener( 'touchmove', onTouchmove );
+      scope.domElement.removeEventListener( 'touchend', onTouchend );
 
     }
 
@@ -277,23 +227,21 @@ var getClosestPoint = function( point, pointArray ) {
 
     this.addListeners = function ( element ) {
 
-      element.addEventListener( 'mousedown', onMouseDown, false );
-      element.addEventListener( 'mousewheel', onMouseWheel, false );
-      element.addEventListener( 'DOMMouseScroll', onMouseWheel, false ); // firefox
-      element.addEventListener( 'touchstart', touchStart, false );
-      element.addEventListener( 'touchmove', touchMove, false );
-      element.addEventListener( 'contextmenu', onContextmenu, false );
+      element.addEventListener( 'mousedown', onMousedown );
+      element.addEventListener( 'mousewheel', onMousewheel );
+      element.addEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
+      element.addEventListener( 'touchstart', onTouchstart );
+      element.addEventListener( 'contextmenu', onContextmenu );
 
     };
 
     this.removeListeners = function ( element ) {
 
-      element.removeEventListener( 'mousedown', onMouseDown, false );
-      element.removeEventListener( 'mousewheel', onMouseWheel, false );
-      element.removeEventListener( 'DOMMouseScroll', onMouseWheel, false ); // firefox
-      element.removeEventListener( 'touchstart', touchStart, false );
-      element.removeEventListener( 'touchmove', touchMove, false );
-      element.removeEventListener( 'contextmenu', onContextmenu, false );
+      element.removeEventListener( 'mousedown', onMousedown );
+      element.removeEventListener( 'mousewheel', onMousewheel );
+      element.removeEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
+      element.removeEventListener( 'touchstart', onTouchstart );
+      element.removeEventListener( 'contextmenu', onContextmenu );
 
     };
 
@@ -312,7 +260,7 @@ var getClosestPoint = function( point, pointArray ) {
 
     // Denormalize rotation ammount;
     theta -= delta.x * rect.width * 0.005;
-    phi -= delta.y * rect.height * 0.005;
+    phi -= - delta.y * rect.height * 0.005;
 
     phi = Math.max( EPS, Math.min( Math.PI - EPS, phi ) );
 
@@ -334,7 +282,7 @@ var getClosestPoint = function( point, pointArray ) {
 
     distance = this.camera.position.distanceTo( this.target );
 
-    vector.set( -delta.x, delta.y, 0 );
+    vector.set( - delta.x, - delta.y, 0 );
 
     if ( this.camera instanceof THREE.PerspectiveCamera ) {
 
