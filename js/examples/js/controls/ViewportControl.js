@@ -6,8 +6,6 @@
  * @author arodic / http://akirodic.com/
  */
 
-/* global THREE, console */
-
 ( function () {
 
   'use strict';
@@ -16,14 +14,12 @@
 
   var vector = new THREE.Vector3();
   var matrix = new THREE.Matrix3();
+  var box = new THREE.Box3();
+  var pointerStart;
 
   var EPS = 0.000001;
   var theta, phi, rect, radius, distance, fovFactor;
-  var cw, ch, aspect, delta;
-
-  // events
-
-  var changeEvent = { type: 'change' };
+  var cw, ch, aspect, delta, center, scale, minCenter, maxCenter;
 
   // Element to be added to body during a drag gesture.
   // It prevents other elements from recieving events and stopping propagaion.
@@ -37,24 +33,39 @@
   clickmask.style.cursor = 'move';
   // clickmask.style.background = 'rgba(255,0,0,0.05)';
 
-  THREE.EditorControls = function ( camera, domElement, target ) {
+  var changeEvent = { type: 'change' };
+
+  THREE.ViewportControl = function ( camera, domElement, target, selection ) {
 
     THREE.Control.call( this );
 
-    if ( !( camera instanceof THREE.Camera ) ) {
-      console.warn('THREE.EditorControls requires an instance THREE.Camera')
-      return;
-    }
-
-    this.camera = ( camera instanceof THREE.Camera ) ? camera : new THREE.Camera();
-
-    this.domElement = ( domElement instanceof HTMLElement) ? domElement : document;
-
-    this.target = ( target instanceof THREE.Vector3 ) ? target : new THREE.Vector3();
-
-    // API
-
-    this.enabled = true;
+    this.registerProperties( {
+      camera: {
+        value: camera,
+        type: THREE.Camera,
+        notify: true
+      },
+      domElement: {
+        value: domElement,
+        type: HTMLElement,
+        notify: true
+      },
+      target: {
+        value: target,
+        type: THREE.Vector3,
+        notify: true
+      },
+      selection: {
+        value: selection,
+        type: THREE.Selection,
+        notify: true
+      },
+      enabled: {
+        value: true,
+        type: 'boolean',
+        notify: true
+      },
+    } );
 
     // internal variables
 
@@ -74,11 +85,11 @@
 
         state = STATE.ROTATE;
 
-        if ( this.camera instanceof THREE.OrthographicCamera ) {
+        if ( scope.camera instanceof THREE.OrthographicCamera ) {
 
           state = STATE.PAN;
 
-        };
+        }
 
       } else if ( event.button === 1 ) {
 
@@ -91,6 +102,8 @@
       }
 
       pointers = scope.getPointersFromEvent( event, true );
+
+      pointerStart = pointers[ 0 ].position;
 
       window.addEventListener( 'mousemove', onMousemove );
       window.addEventListener( 'mouseup', onMouseup );
@@ -118,8 +131,12 @@
 
       }
 
-      if (clickmask.parentNode !== document.body) {
-        document.body.appendChild(clickmask);
+      if ( pointerStart.distanceTo( pointers[ 0 ].position ) > 0.1 ) {
+
+        if ( clickmask.parentNode !== document.body ) {
+          document.body.appendChild(clickmask);
+        }
+
       }
 
     }
@@ -168,6 +185,8 @@
 
       if ( scope.enabled === false ) return;
 
+      event.preventDefault();
+
       pointers = scope.getPointersFromEvent( event, true );
 
       scope.domElement.addEventListener( 'touchmove', onTouchmove );
@@ -178,6 +197,8 @@
     function onTouchmove( event ) {
 
       if ( scope.enabled === false ) return;
+
+      event.preventDefault();
 
       pointers = scope.getPointersFromEvent( event );
 
@@ -214,8 +235,20 @@
 
     function onTouchend() {
 
+      event.preventDefault();
+
       scope.domElement.removeEventListener( 'touchmove', onTouchmove );
       scope.domElement.removeEventListener( 'touchend', onTouchend );
+
+    }
+
+    function onKeyup(event) {
+
+      if ( event.which === 70 ) {
+
+        scope.focusSelection();
+
+      }
 
     }
 
@@ -225,32 +258,38 @@
 
     }
 
-    this.addListeners = function ( element ) {
+    this.addEventListener( 'domelementchange', function ( event ) {
 
-      element.addEventListener( 'mousedown', onMousedown );
-      element.addEventListener( 'mousewheel', onMousewheel );
-      element.addEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
-      element.addEventListener( 'touchstart', onTouchstart );
-      element.addEventListener( 'contextmenu', onContextmenu );
+      if ( event.value ) {
 
-    };
+        event.value.addEventListener( 'mousedown', onMousedown );
+        event.value.addEventListener( 'mousewheel', onMousewheel );
+        event.value.addEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
+        event.value.addEventListener( 'touchstart', onTouchstart );
+        event.value.addEventListener( 'keyup', onKeyup );
+        event.value.addEventListener( 'contextmenu', onContextmenu );
 
-    this.removeListeners = function ( element ) {
+      }
 
-      element.removeEventListener( 'mousedown', onMousedown );
-      element.removeEventListener( 'mousewheel', onMousewheel );
-      element.removeEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
-      element.removeEventListener( 'touchstart', onTouchstart );
-      element.removeEventListener( 'contextmenu', onContextmenu );
+      if ( event.oldValue ) {
 
-    };
+        event.oldValue.removeEventListener( 'mousedown', onMousedown );
+        event.oldValue.removeEventListener( 'mousewheel', onMousewheel );
+        event.oldValue.removeEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
+        event.oldValue.removeEventListener( 'touchstart', onTouchstart );
+        event.oldValue.removeEventListener( 'keyup', onKeyup );
+        event.oldValue.removeEventListener( 'contextmenu', onContextmenu );
+
+      }
+
+    } );
 
   };
 
-  THREE.EditorControls.prototype = Object.create( THREE.Control.prototype );
-  THREE.EditorControls.prototype.constructor = THREE.EditorControls;
+  THREE.ViewportControl.prototype = Object.create( THREE.Control.prototype );
+  THREE.ViewportControl.prototype.constructor = THREE.ViewportControl;
 
-  THREE.EditorControls.prototype.rotate = function ( delta ) {
+  THREE.ViewportControl.prototype.rotate = function ( delta ) {
 
     vector.copy( this.camera.position ).sub( this.target );
 
@@ -278,7 +317,7 @@
 
   };
 
-  THREE.EditorControls.prototype.pan = function ( delta ) {
+  THREE.ViewportControl.prototype.pan = function ( delta ) {
 
     distance = this.camera.position.distanceTo( this.target );
 
@@ -305,7 +344,7 @@
 
   };
 
-  THREE.EditorControls.prototype.zoom = function ( delta ) {
+  THREE.ViewportControl.prototype.zoom = function ( delta ) {
 
     if ( this.camera instanceof THREE.PerspectiveCamera ) {
 
@@ -334,129 +373,58 @@
 
   };
 
-  THREE.EditorControls.prototype.focus = function ( target, frame ) {
+  THREE.ViewportControl.prototype.focusSelection = function () {
 
-    // Collection of all centers and radii in the hierarchy of the target.
+    if ( this.selection && this.selection.objects.length ) {
 
-    var targets = [];
+      if ( this.selection.sphere.radius ) {
 
-    // Bounding box (minCenter/maxCenter) encompassing all centers in hierarchy.
+        var radius = this.selection.sphere.radius;
+        var offset = this.camera.position.clone().sub( this.target );
 
-    var minCenter;
-    var maxCenter;
+        if ( this.camera instanceof THREE.PerspectiveCamera ) {
 
-    target.traverse( function( child ) {
+          this.target.copy( this.selection.center );
 
-      if (child.visible) {
+          var fovFactor = Math.tan( ( this.camera.fov / 2 ) * Math.PI / 180.0 );
+          offset.normalize().multiplyScalar( radius  / fovFactor );
 
-        child.updateMatrixWorld( true );
+          this.camera.position.copy( this.target ).add( offset );
 
-        var center = new THREE.Vector3();
-        var scale = new THREE.Vector3();
-        var radius = 0;
+          this.camera.lookAt( this.target );
 
-        child.matrixWorld.decompose( center, new THREE.Quaternion(), scale );
-        scale = ( scale.x + scale.y + scale.z ) / 3;
+        } else if ( this.camera instanceof THREE.OrthographicCamera ) {
 
-        //TODO: make work with non-uniform scale
+          this.target.copy( this.selection.center );
+          this.camera.position.copy( this.target ).add( offset );
 
-        if ( child.geometry ) {
+          cw = this.camera.right - this.camera.left;
+          ch = this.camera.top - this.camera.bottom;
+          aspect = cw / ch;
 
-          child.geometry.computeBoundingSphere();
-          center.add( child.geometry.boundingSphere.center.clone().multiplyScalar( scale )
-            .applyMatrix4(child.matrixWorld) );
-          radius = child.geometry.boundingSphere.radius * scale;
+          if ( aspect < 1 ) {
 
-        }
+            this.camera.top = radius / aspect;
+            this.camera.right = radius;
+            this.camera.bottom = -radius / aspect;
+            this.camera.left = -radius;
 
-        if ( !frame || child.geometry ) {
+          } else {
 
-          targets.push( { center: center, radius: radius } );
+            this.camera.top = radius;
+            this.camera.right = radius * aspect;
+            this.camera.bottom = -radius;
+            this.camera.left = -radius * aspect;
 
-          if ( !minCenter ) minCenter = center.clone();
-          if ( !maxCenter ) maxCenter = center.clone();
-
-          minCenter.min( center );
-          maxCenter.max( center );
-
-        }
-
-
-      }
-
-
-    } );
-
-    // Center of the bounding box.
-
-    var cumulativeCenter = minCenter.clone().add( maxCenter ).multiplyScalar( 0.5 );
-
-    // Furthest ( center distance + radius ) from CumulativeCenter.
-
-    var cumulativeRadius = 0;
-
-    targets.forEach( function( child ) {
-
-      var radius = cumulativeCenter.distanceTo( child.center ) + child.radius;
-      cumulativeRadius = Math.max( cumulativeRadius, radius );
-
-    } );
-
-    if ( this.camera instanceof THREE.PerspectiveCamera ) {
-
-      // Look towards cumulativeCenter
-
-      this.target.copy( cumulativeCenter );
-      this.camera.lookAt( this.target );
-
-      if ( frame && cumulativeRadius ) {
-
-        // Adjust distance to frame cumulativeRadius
-
-        var fovFactor = Math.tan( ( this.camera.fov / 2 ) * Math.PI / 180.0 );
-        var pos = this.camera.position.clone().sub( this.target ).normalize().multiplyScalar( cumulativeRadius  / fovFactor );
-
-        this.camera.position.copy( this.target ).add( pos );
-
-      }
-
-    } else if ( this.camera instanceof THREE.OrthographicCamera ) {
-
-      // Align camera target with cumulativeCenter
-
-      var initialCenterOffset = this.camera.position.clone().sub( this.target );
-      this.target.copy( cumulativeCenter );
-      this.camera.position.copy( this.target ).add( initialCenterOffset );
-
-      if ( frame && cumulativeRadius ) {
-
-        // Adjust camera boundaries to frame cumulativeRadius
-
-        cw = this.camera.right - this.camera.left;
-        ch = this.camera.top - this.camera.bottom;
-        aspect = cw / ch;
-
-        if ( aspect < 1 ) {
-
-          this.camera.top = cumulativeRadius / aspect;
-          this.camera.right = cumulativeRadius;
-          this.camera.bottom = -cumulativeRadius / aspect;
-          this.camera.left = -cumulativeRadius;
-
-        } else {
-
-          this.camera.top = cumulativeRadius;
-          this.camera.right = cumulativeRadius * aspect;
-          this.camera.bottom = -cumulativeRadius;
-          this.camera.left = -cumulativeRadius * aspect;
+          }
 
         }
+
+        this.dispatchEvent( changeEvent );
 
       }
 
     }
-
-    this.dispatchEvent( changeEvent );
 
   };
 

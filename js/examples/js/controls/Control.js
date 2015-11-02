@@ -4,17 +4,7 @@
 
 ( function () {
 
-  THREE.Control = function ( camera, domElement, target ) {
-
-    this.camera = ( camera instanceof THREE.Camera ) ? camera : new THREE.Camera();
-
-    this.domElement = ( domElement instanceof HTMLElement) ? domElement : document;
-
-    this.target = ( target instanceof THREE.Vector3 ) ? target : new THREE.Vector3();
-
-    // API
-
-    this.enabled = true;
+  THREE.Control = function () {
 
     // internal variables.
 
@@ -30,9 +20,9 @@
         ( x - rect.left ) / rect.width * 2 - 1,
         1 - ( y - rect.top ) / rect.height * 2
       );
-    }
+    };
 
-    var getClosestPointer = function( point, array ) {
+    var getClosestPointer = function ( point, array ) {
       closestPointer = array[ 0 ];
       for ( var i = 1; i < array.length; i++ ) {
         if ( array[ i ].distanceTo( point ) < closestPointer.distanceTo( point ) ) {
@@ -42,9 +32,9 @@
       return closestPointer;
     };
 
-    this.getPointersFromEvent = function( event, reset ) {
+    this.getPointersFromEvent = function ( event, reset ) {
 
-      touches = event.touches ? event.touches : [event];
+      touches = event.touches ? event.touches : [ event ];
 
       pointersOld = reset ? [] : pointers || [];
       pointers = [];
@@ -68,213 +58,163 @@
 
       var data = [];
 
-      for ( var i = 0; i < pointers.length; i++ ) {
+      for ( i = 0; i < pointers.length; i++ ) {
 
-        pointerDeltas[ i ] = pointers[ i ].clone().sub( getClosestPointer( pointers[ i ], pointersOld ) )
+        pointerDeltas[ i ] = pointers[ i ].clone().sub( getClosestPointer( pointers[ i ], pointersOld ) );
         data[ i ] = {
           position: pointers[ i ],
           previous: pointersOld[ i ],
           delta: pointerDeltas[ i ]
-        }
+        };
 
       }
 
       return data;
 
-    }
-
-    // event handlers
-
-    function onMouseDown( event ) {
-
-      scope.setPointers( event, true );
-      console.log( 'down', scope.pointers );
-
-    }
-
-    function onTouchstart( event ) {
-
-      scope.setPointers( event, true );
-      console.log( 'start', scope.pointers );
-
-    }
-
-    function onTouchmove( event ) {
-
-      scope.setPointers( event );
-      console.log( 'move', scope.pointerDeltas );
-
-    }
-
-    // initialize listeners
-
-    this.addListeners = function ( element ) {
-
-      element.addEventListener( 'mousedown', onMouseDown, false );
-      element.addEventListener( 'touchstart', onTouchstart, false );
-      element.addEventListener( 'touchmove', onTouchmove, false );
-
     };
 
-    this.removeListeners = function ( element ) {
-
-      element.removeEventListener( 'mousedown', onMouseDown, false );
-      element.removeEventListener( 'touchstart', onTouchstart, false );
-      element.removeEventListener( 'touchmove', onTouchmove, false );
-
-    };
-
-  };
-
-  THREE.Control.prototype = {
-
-    constructor: THREE.Control,
-
-    addListeners: function () {},
-
-    removeListeners: function () {},
-
-    dispose: function() {
-
-      this.camera = null;
-      this.target = null;
-      this.domElement = null;
-
-    },
-
-    onCameraChange: function ( callback ) {
-
-      this.onCameraChangeCallback = callback;
-
-      return this;
-
-    },
-
-    onCameraChangeCallback: function () {},
-
-    onDomElementChange: function ( callback ) {
-
-      this.onDomElementChangeCallback = callback;
-
-      return this;
-
-    },
-
-    onDomElementChangeCallback: function ( domElement, oldDomElement ) {
-
-      if ( oldDomElement ) {
-
-        setTimeout(function () {
-
-          this.removeListeners( oldDomElement );
-
-        }.bind(this));
-
-      }
-
-      if ( domElement ) {
-
-        setTimeout(function () {
-
-          this.addListeners( domElement );
-
-        }.bind(this));
-
-      }
-
-    },
-
-    onTargetChange: function ( callback ) {
-
-      this.onTargetChangeCallback = callback;
-
-      return this;
-
-    },
-
-    onTargetChangeCallback: function () {}
 
   };
 
   THREE.EventDispatcher.prototype.apply( THREE.Control.prototype );
 
-  Object.defineProperties( THREE.Control.prototype, {
+  THREE.Control.prototype.registerProperty = function ( key, value, type, observer, notify ) {
 
-    camera: {
+    this._properties = this._properties || {};
+
+    var _changeEvent = key.toLowerCase() + 'change';
+    var _oldValue;
+
+    Object.defineProperty( this, key, {
 
       get: function () {
 
-        return this._camera;
+        return this._properties[ key ];
 
       },
 
-      set: function ( camera ) {
+      set: function ( value ) {
 
-        var oldCamera = this._camera;
-        this._camera = camera;
+        if ( this._properties[ key ] === value ) return;
 
-        window.clearTimeout(this._cameraSetTimeout);
-        this._cameraSetTimeout = setTimeout(function () {
+        if ( type ) {
 
-          this.onCameraChangeCallback( camera, oldCamera );
-          delete this._cameraSetTimeout;
+          if ( typeof type === 'string' && typeof value !== type ) {
+
+            console.warn('THREE.Control: ' + key + ' is incorrect type.');
+            return;
+
+          } else if ( typeof type === 'function' && !( value instanceof type ) ) {
+
+            console.warn('THREE.Control: ' + key + ' is incorrect type.');
+            return;
+
+          }
+
+        }
+
+        _oldValue = this._properties[ key ];
+        this._properties[ key ] = value;
+
+        if ( notify !== true ) return;
+
+        this.debounce( _changeEvent, function () {
+
+          if ( observer && typeof this[ observer ] == 'function') {
+
+            this[ observer ]( value, _oldValue );
+
+          }
+
+          this.dispatchEvent( { type: _changeEvent, value: value, oldVaue: _oldValue } );
 
         }.bind(this));
 
       }
 
-    },
+    } );
 
-    domElement: {
+    this[ key ] = value;
 
-      get: function () {
+  };
 
-        return this._domElement;
+  THREE.Control.prototype.registerProperties = function ( properties ) {
 
-      },
+    for ( var key in properties ) {
 
-      set: function ( domElement ) {
-
-        var oldDomElement = this._domElement;
-        this._domElement = domElement;
-
-        window.clearTimeout(this._domElementSetTimeout);
-        this._domElementSetTimeout = setTimeout(function () {
-
-          this.onDomElementChangeCallback( domElement, oldDomElement );
-          delete this._domElementSetTimeout;
-
-        }.bind(this));
-
-      }
-
-    },
-
-    target: {
-
-      get: function () {
-
-        return this._target;
-
-      },
-
-      set: function ( target ) {
-
-        var oldTarget = this._target;
-        this._target = target;
-
-        window.clearTimeout(this._targetSetTimeout);
-        this._targetSetTimeout = setTimeout(function () {
-
-          this.onTargetChangeCallback( target, oldTarget );
-          delete this._targetSetTimeout;
-
-        }.bind(this));
-
-      }
+      this.registerProperty(
+        key,
+        properties[ key ].value,
+        properties[ key ].type,
+        properties[ key ].observer,
+        properties[ key ].notify
+      );
 
     }
 
-  } );
+  };
+
+  THREE.Control.prototype.bindProperty = function ( key, target, targetkey ) {
+
+    this._effects = this._effects || {};
+
+    var id = key.toLowerCase() + 'change';
+    var targetId = targetkey.toLowerCase() + 'change';
+
+    this._effects[ id ] = {
+      sourceChangeCallback: function () { target[ targetkey ] = this[ key ]; }.bind( this ),
+      targetChangeCallback: function () { this[ key ] = target[ targetkey ]; }.bind( this ),
+      target: target
+    }
+
+    this.addEventListener( id, this._effects[ id ].sourceChangeCallback );
+    target.addEventListener( targetId, this._effects[ id ].targetChangeCallback );
+
+    target[ targetkey ] = this[ key ];
+
+  };
+
+  THREE.Control.prototype.dispose = function () {
+
+    if (this._effects) {
+      for ( var id in _effects ) {
+        this.removeEventListener( id, _effects[ id ].sourceChangeCallback );
+        this._effects[ id ].target.removeEventListener( id, this._effects[ id ].targetChangeCallback );
+        delete this._effects[ id ];
+      }
+      delete this._effects;
+    }
+
+    if (this._properties) {
+      for ( var key in this._properties ) {
+        delete this._properties[ key ];
+      }
+      delete this._properties;
+    }
+
+    if (this._debouncers) {
+      for ( var id in this._debouncers ) {
+        window.clearTimeout( this._debouncers[ id ] );
+        delete this._debouncers[ id ];
+      }
+      delete this._debouncers;
+    }
+
+  };
+
+  THREE.Control.prototype.debounce = function ( id, callback, timeout ) {
+
+    this._debouncers = this._debouncers || {};
+
+    window.clearTimeout( this._debouncers[ id ] );
+
+    this._debouncers[ id ] = setTimeout( function () {
+
+      callback();
+      delete this._debouncers[ id ];
+
+    }.bind(this), timeout );
+
+  };
 
 }());
