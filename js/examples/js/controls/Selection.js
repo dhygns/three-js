@@ -24,7 +24,7 @@
 
     this.helper = new THREE.Object3D();
     this._bboxHelper = new THREE.BoxHelper( new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1, 1, 1, 1 ) ) );
-    this._bboxHelper.material.depthFunc = THREE.LessEqualDepth;
+    // this._bboxHelper.material.depthFunc = THREE.LessEqualDepth;
     this._bboxHelper.material.depthTest = false;
     this._bboxHelper.visible = false;
     this.helper.add(this._bboxHelper);
@@ -142,9 +142,9 @@
 
       for ( var i = 0; i < this.objects.length; i++ ) {
 
-        if ( this.objects[ 0 ].children.length ) {
+        if ( this.objects[ i ].children.length ) {
 
-          children.push( this.objects[ 0 ].children[ 0 ] );
+          children.push( this.objects[ i ].children[ 0 ] );
 
         }
 
@@ -158,40 +158,76 @@
 
     selectNext: function () {
 
-      console.log( 'THREE.Selection: Not implemented!' ); // TODO
+      var siblings = [];
+
+      for ( var i = 0; i < this.objects.length; i++ ) {
+
+        if ( this.objects[ i ].parent ) {
+
+          var index = this.objects[ i ].parent.children.indexOf( this.objects[ i ] );
+
+          index = ( index + 1 ) % this.objects[ i ].parent.children.length;
+
+          siblings.push( this.objects[ i ].parent.children[ index ] );
+
+        }
+
+      }
+
+      this.clear();
+
+      this.add( siblings );
 
     },
 
     selectPrevious: function () {
 
-      console.log( 'THREE.Selection: Not implemented!' ); // TODO
+      var siblings = [];
 
-    },
+      for ( var i = 0; i < this.objects.length; i++ ) {
 
-    addEdgesHelper: function ( object ) {
+        if ( this.objects[ i ].parent ) {
 
-      object.traverse( function (child) {
+          var index = this.objects[ i ].parent.children.indexOf( this.objects[ i ] );
 
-        if ( child.geometry ) {
+          index = ( this.objects[ i ].parent.children.length + index - 1 ) % this.objects[ i ].parent.children.length;
 
-          if ( !child._edgesHelper ) {
-
-            child._edgesHelper = new THREE.WireframeHelper( child );
-            child._edgesHelper.material.depthFunc = THREE.LessEqualDepth;
-            child._edgesHelper.material.depthTest = false;
-            child._edgesHelper.material.transparent = true;
-            child._edgesHelper.material.opacity = 0.5;
-            this.helper.add(child._edgesHelper);
-
-          }
-
-          child._edgesHelper.visible = true;
+          siblings.push( this.objects[ i ].parent.children[ index ] );
 
         }
 
-      }.bind( this ) );
+      }
+
+      this.clear();
+
+      this.add( siblings );
 
     },
+
+    // addEdgesHelper: function ( object ) {
+    //
+    //   object.traverse( function (child) {
+    //
+    //     if ( child.geometry ) {
+    //
+    //       if ( !child._edgesHelper ) {
+    //
+    //         child._edgesHelper = new THREE.WireframeHelper( child );
+    //         // child._edgesHelper.material.depthFunc = THREE.LessEqualDepth;
+    //         child._edgesHelper.material.depthTest = false;
+    //         child._edgesHelper.material.transparent = true;
+    //         child._edgesHelper.material.opacity = 0.25;
+    //         this.helper.add(child._edgesHelper);
+    //
+    //       }
+    //
+    //       child._edgesHelper.visible = true;
+    //
+    //     }
+    //
+    //   }.bind( this ) );
+    //
+    // },
 
     updateHelper: function () {
 
@@ -222,7 +258,7 @@
 
             this._bboxHelper.visible = true;
 
-            this.addEdgesHelper( object );
+            // this.addEdgesHelper( object );
 
           }
 

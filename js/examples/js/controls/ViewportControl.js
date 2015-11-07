@@ -15,57 +15,25 @@
   var vector = new THREE.Vector3();
   var matrix = new THREE.Matrix3();
   var box = new THREE.Box3();
-  var pointerStart;
 
   var EPS = 0.000001;
   var theta, phi, rect, radius, distance, fovFactor;
   var cw, ch, aspect, delta, center, scale, minCenter, maxCenter;
-
-  // Element to be added to body during a drag gesture.
-  // It prevents other elements from recieving events and stopping propagaion.
-  var clickmask = document.createElement( 'div' );
-  clickmask.style.position = 'fixed';
-  clickmask.style.top = 0;
-  clickmask.style.left = 0;
-  clickmask.style.bottom = 0;
-  clickmask.style.right = 0;
-  clickmask.style.zIndex = 10000000;
-  clickmask.style.cursor = 'move';
-  // clickmask.style.background = 'rgba(255,0,0,0.05)';
-
-  var changeEvent = { type: 'change' };
 
   THREE.ViewportControl = function ( camera, domElement, target, selection ) {
 
     THREE.Control.call( this );
 
     this.registerProperties( {
-      camera: {
-        value: camera,
-        type: THREE.Camera,
-        notify: true
-      },
-      domElement: {
-        value: domElement,
-        type: HTMLElement,
-        notify: true
-      },
       target: {
         value: target,
-        type: THREE.Vector3,
-        notify: true
-      },
-      selection: {
-        value: selection,
-        type: THREE.Selection,
-        notify: true
-      },
-      enabled: {
-        value: true,
-        type: 'boolean',
-        notify: true
-      },
+        type: THREE.Vector3
+      }
     } );
+
+    this.camera = camera;
+    this.domElement = domElement;
+    this.selection = selection;
 
     // internal variables
 
@@ -77,212 +45,92 @@
 
     // event handlers
 
-    function onMousedown( event ) {
+    this.onTrack = function ( event, pointers ) {
 
-      if ( scope.enabled === false ) return;
+      if ( event.type === 'mousemove' ) {
 
-      if ( event.button === 0 ) {
+        if ( event.button === 0 ) {
 
-        state = STATE.ROTATE;
+          if ( scope.camera instanceof THREE.OrthographicCamera ) {
 
-        if ( scope.camera instanceof THREE.OrthographicCamera ) {
+            scope.pan( pointers[ 0 ].delta );
 
-          state = STATE.PAN;
+          } else {
+
+            scope.rotate( pointers[ 0 ].delta );
+
+          }
 
         }
 
-      } else if ( event.button === 1 ) {
+        if ( event.button === 1 || event.altKey ) {
 
-        state = STATE.ZOOM;
+          scope.zoom( pointers[ 0 ].delta );
 
-      } else if ( event.button === 2 ) {
+        }
 
-        state = STATE.PAN;
+        if ( event.button === 2 || event.ctrlKey ) {
 
-      }
+          scope.pan( pointers[ 0 ].delta );
 
-      pointers = scope.getPointersFromEvent( event, true );
+        }
 
-      pointerStart = pointers[ 0 ].position;
+      } else if ( event.type === 'touchmove' ) {
 
-      window.addEventListener( 'mousemove', onMousemove );
-      window.addEventListener( 'mouseup', onMouseup );
-      window.addEventListener( 'contextmenu', onContextmenu );
+        switch ( pointers.length ) {
 
-    }
+          case 1:
 
-    function onMousemove( event ) {
+            if ( scope.camera instanceof THREE.PerspectiveCamera ) {
 
-      if ( scope.enabled === false ) return;
+              scope.rotate( pointers[ 0 ].delta );
 
-      pointers = scope.getPointersFromEvent( event );
+            } else if ( scope.camera instanceof THREE.OrthographicCamera ) {
 
-      if ( state === STATE.ROTATE ) {
+              scope.pan( pointers[ 0 ].delta );
 
-        scope.rotate( pointers[ 0 ].delta );
+            }
+            break;
 
-      } else if ( state === STATE.ZOOM ) {
+          case 2:
 
-        scope.zoom( pointers[ 0 ].delta );
+            var prevDistance = pointers[ 0 ].previous.distanceTo( pointers[ 1 ].previous );
+            var distance = pointers[ 0 ].position.distanceTo( pointers[ 1 ].position );
 
-      } else if ( state === STATE.PAN ) {
+            if ( prevDistance ) {
 
-        scope.pan( pointers[ 0 ].delta );
+              scope.zoom( new THREE.Vector2(0, prevDistance - distance ) );
+              scope.pan( pointers[ 0 ].delta.clone().add( pointers[ 1 ].delta ).multiplyScalar(0.5) );
 
-      }
-
-      if ( pointerStart.distanceTo( pointers[ 0 ].position ) > 0.1 ) {
-
-        if ( clickmask.parentNode !== document.body ) {
-          document.body.appendChild(clickmask);
+            }
+            break;
         }
 
       }
 
-    }
+    };
 
-    function onMouseup( event ) {
+    this.onTrackend = function ( event, pointers ) {
 
       state = STATE.NONE;
 
-      if (clickmask.parentNode == document.body) {
-        document.body.removeChild(clickmask);
-      }
+    };
 
-      window.removeEventListener( 'mousemove', onMousemove );
-      window.removeEventListener( 'mouseup', onMouseup );
-      window.addEventListener( 'contextmenu', onContextmenu );
-
-    }
-
-    function onMousewheel( event ) {
-
-      if ( scope.enabled === false ) return;
-
-      event.preventDefault();
-
-      delta = 0;
-
-      if ( event.wheelDelta ) {
-
-        // WebKit / Opera / Explorer 9
-
-        delta = - event.wheelDelta;
-
-      } else if ( event.detail ) {
-
-        // Firefox
-
-        delta = event.detail * 10;
-
-      }
+    this.onMousewheel = function ( event, delta ) {
 
       scope.zoom( new THREE.Vector2( 0, delta / 1000 ) );
 
     }
 
-    function onTouchstart( event ) {
+    this.onKeyup = function ( event, key ) {
 
-      if ( scope.enabled === false ) return;
-
-      event.preventDefault();
-
-      pointers = scope.getPointersFromEvent( event, true );
-
-      scope.domElement.addEventListener( 'touchmove', onTouchmove );
-      scope.domElement.addEventListener( 'touchend', onTouchend );
-
-    }
-
-    function onTouchmove( event ) {
-
-      if ( scope.enabled === false ) return;
-
-      event.preventDefault();
-
-      pointers = scope.getPointersFromEvent( event );
-
-      switch ( pointers.length ) {
-
-        case 1:
-
-          if ( scope.camera instanceof THREE.PerspectiveCamera ) {
-
-            scope.rotate( pointers[ 0 ].delta );
-
-          } else if ( scope.camera instanceof THREE.OrthographicCamera ) {
-
-            scope.pan( pointers[ 0 ].delta );
-
-          }
-          break;
-
-        case 2:
-
-          var prevDistance = pointers[ 0 ].previous.distanceTo( pointers[ 1 ].previous );
-          var distance = pointers[ 0 ].position.distanceTo( pointers[ 1 ].position );
-
-          if ( prevDistance ) {
-
-            scope.zoom( new THREE.Vector2(0, prevDistance - distance ) );
-            scope.pan( pointers[ 0 ].delta.clone().add( pointers[ 1 ].delta ).multiplyScalar(0.5) );
-
-          }
-          break;
-      }
-
-    }
-
-    function onTouchend() {
-
-      event.preventDefault();
-
-      scope.domElement.removeEventListener( 'touchmove', onTouchmove );
-      scope.domElement.removeEventListener( 'touchend', onTouchend );
-
-    }
-
-    function onKeyup(event) {
-
-      if ( event.which === 70 ) {
+      if ( key === 70 ) {
 
         scope.focusSelection();
 
       }
 
-    }
-
-    function onContextmenu( event ) {
-
-      event.preventDefault();
-
-    }
-
-    this.addEventListener( 'domelementchange', function ( event ) {
-
-      if ( event.value ) {
-
-        event.value.addEventListener( 'mousedown', onMousedown );
-        event.value.addEventListener( 'mousewheel', onMousewheel );
-        event.value.addEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
-        event.value.addEventListener( 'touchstart', onTouchstart );
-        event.value.addEventListener( 'keyup', onKeyup );
-        event.value.addEventListener( 'contextmenu', onContextmenu );
-
-      }
-
-      if ( event.oldValue ) {
-
-        event.oldValue.removeEventListener( 'mousedown', onMousedown );
-        event.oldValue.removeEventListener( 'mousewheel', onMousewheel );
-        event.oldValue.removeEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
-        event.oldValue.removeEventListener( 'touchstart', onTouchstart );
-        event.oldValue.removeEventListener( 'keyup', onKeyup );
-        event.oldValue.removeEventListener( 'contextmenu', onContextmenu );
-
-      }
-
-    } );
+    };
 
   };
 
@@ -313,7 +161,7 @@
 
     this.camera.lookAt( this.target );
 
-    this.dispatchEvent( changeEvent );
+    this.dispatchChangeEvent();
 
   };
 
@@ -340,7 +188,7 @@
     this.camera.position.add( vector );
     this.target.add( vector );
 
-    this.dispatchEvent( changeEvent );
+    this.dispatchChangeEvent();
 
   };
 
@@ -369,7 +217,7 @@
 
     }
 
-    this.dispatchEvent( changeEvent );
+    this.dispatchChangeEvent();
 
   };
 
@@ -420,7 +268,7 @@
 
         }
 
-        this.dispatchEvent( changeEvent );
+        this.dispatchChangeEvent();
 
       }
 
