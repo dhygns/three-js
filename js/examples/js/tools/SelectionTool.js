@@ -10,14 +10,28 @@
 
   var raycaster = new THREE.Raycaster();
 
-  THREE.SelectionControl = function ( camera, domElement, scene, selection ) {
+  THREE.SelectionControl = function ( parameters ) {
 
     THREE.Control.call( this );
 
-    this.camera = camera;
-    this.domElement = domElement;
-    this.scene = scene;
-    this.selection = selection;
+    parameters = parameters || {};
+
+    this.registerProperties( {
+      camera: {
+        value: parameters.camera
+      },
+      domElement: {
+        value: parameters.domElement
+      },
+      scene: {
+        value: parameters.scene,
+        observer: 'addSelectionHelper'
+      },
+      selection: {
+        value: parameters.selection,
+        observer: 'addSelectionHelper'
+      }
+    } );
 
     // internal variables
 
@@ -63,7 +77,7 @@
 
     this.onTrackend = function ( event, pointers ) {
 
-      if ( pointers[0].offset.length() < 0.05 ) selectWithPointer( pointers[0].position );
+      if ( pointers[0].offset.length() < 0.01 ) selectWithPointer( pointers[0].position, event.shiftKey );
 
     };
 
@@ -95,5 +109,10 @@
 
   THREE.SelectionControl.prototype = Object.create( THREE.Control.prototype );
   THREE.SelectionControl.prototype.constructor = THREE.SelectionControl;
+
+  THREE.SelectionControl.prototype.addSelectionHelper = function () {
+    this.scene._helpers = this.scene._helpers || new THREE.Scene();
+    this.scene._helpers.add(this.selection.helper);
+  };
 
 }());

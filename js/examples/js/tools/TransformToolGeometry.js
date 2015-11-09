@@ -267,27 +267,27 @@
 
   };
 
-  THREE.TransformGizmoControl.prototype.makeGizmoTranslate = function() {
+  THREE.TransformControl.prototype.makeGizmoTranslate = function() {
     return setupGizmos( handlesTranslate );
   };
 
-  THREE.TransformGizmoControl.prototype.makeGizmoRotate = function() {
+  THREE.TransformControl.prototype.makeGizmoRotate = function() {
     return setupGizmos( handlesRotate );
   };
 
-  THREE.TransformGizmoControl.prototype.makeGizmoScale = function() {
+  THREE.TransformControl.prototype.makeGizmoScale = function() {
     return setupGizmos( handlesScale );
   };
 
-  THREE.TransformGizmoControl.prototype.makePickerTranslate = function() {
+  THREE.TransformControl.prototype.makePickerTranslate = function() {
     return setupGizmos( pickersTranslate );
   };
 
-  THREE.TransformGizmoControl.prototype.makePickerRotate = function() {
+  THREE.TransformControl.prototype.makePickerRotate = function() {
     return setupGizmos( pickersRotate );
   };
 
-  THREE.TransformGizmoControl.prototype.makePickerScale = function() {
+  THREE.TransformControl.prototype.makePickerScale = function() {
     return setupGizmos( pickersScale );
   };
 

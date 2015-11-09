@@ -30,21 +30,41 @@
 
   }
 
-  THREE.TransformControl = function ( camera, domElement, selection ) {
+  THREE.TransformControl = function ( parameters ) {
 
     // TODO: Make non-uniform scale and rotate play nice in hierarchies
 
     THREE.Control.call( this );
 
+    parameters = parameters || {};
+
     this.registerProperties( {
+      camera: {
+        value: parameters.camera
+      },
+      domElement: {
+        value: parameters.domElement
+      },
+      selection: {
+        value: parameters.selection
+      },
+      target: {
+        type: THREE.Object3D,
+        notify: true
+      },
       mode: {
         value: 'translate',
-        type: 'string',
-        notify: true
+        observer: 'modeChanged',
       },
       size: {
         value: 1,
         type: 'number',
+        notify: true
+      },
+      axis: {
+        value: '',
+        type: 'string',
+        observer: 'axisChanged',
         notify: true
       },
       space: {
@@ -54,9 +74,49 @@
       }
     } );
 
-    this.camera = camera;
-    this.domElement = domElement;
-    this.selection = selection;
+    this.helper = new THREE.Object3D();
+
+    this.plane = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry( 5000, 5000, 2, 2 ),
+      new THREE.MeshBasicMaterial( { visible: false, wireframe: true, side: THREE.DoubleSide } )
+    );
+    this.helper.add( this.plane );
+    this.helper.visible = false;
+
+    this.gnomon = new THREE.Object3D();
+    this.helper.add( this.gnomon );
+    this.helper.update = function( camera ) {
+      this.updateTransform( camera );
+      this.updateVisibility();
+      this.updatePlaneOrientation();
+    }.bind( this );
+
+    this.handles = new THREE.Object3D();
+    this.pickers = new THREE.Object3D();
+    this.gnomon.add( this.handles );
+    this.gnomon.add( this.pickers );
+
+    this._handleModes = {
+      translate: this.makeGizmoTranslate(),
+      rotate: this.makeGizmoRotate(),
+      scale: this.makeGizmoScale()
+    };
+
+    this._pickerModes = {
+      translate: this.makePickerTranslate(),
+      rotate: this.makePickerRotate(),
+      scale: this.makePickerScale()
+    };
+
+    // transformations
+
+    this.position = new THREE.Vector3();
+    this.scale  = new THREE.Vector3();
+    this.quaternion  = new THREE.Quaternion();
+    this.eye = new THREE.Vector3();
+    this.alignVector = new THREE.Vector3();
+
+    ///
 
     this.addEventListener( 'selection', this.setTargetFromSelection.bind( this ) );
 
@@ -90,21 +150,6 @@
     var tempMatrix = new THREE.Matrix4();
     var tempVector = new THREE.Vector3();
 
-    this.gizmo = new THREE.TransformGizmoControl();
-
-    this.helper = this.gizmo.helper;
-
-    this.bindProperty( 'camera', this.gizmo, 'camera' );
-    this.bindProperty( 'mode', this.gizmo, 'mode' );
-    this.bindProperty( 'size', this.gizmo, 'size' );
-    this.bindProperty( 'space', this.gizmo, 'space' );
-    this.bindProperty( 'enabled', this.gizmo, 'enabled' );
-
-    this.gizmo.addEventListener( 'axischange', function () {
-      this.active = this.gizmo.axis !== '';
-      this.dispatchChangeEvent();
-    }.bind( this ));
-
     // hepler functions
 
     function selectionTransformInit () {
@@ -124,7 +169,7 @@
     function selectionTranslate () {
 
       var objects = scope.selection.objects;
-      var axis = scope.gizmo.axis;
+      var axis = scope.axis;
       var space = scope.space;
 
       // if ( axis === 'E' ||  axis === 'XYZE' ) space = 'world';
@@ -162,7 +207,7 @@
     function selectionRotate () {
 
       var objects = scope.selection.objects;
-      var axis = scope.gizmo.axis;
+      var axis = scope.axis;
       var space = scope.space;
 
       if ( axis === 'E' ||  axis === 'XYZE' ) space = 'world';
@@ -205,9 +250,9 @@
 
       selectionTransformInit();
 
-      scope.gizmo.target.updateMatrixWorld();
+      scope.target.updateMatrixWorld();
 
-      worldMatrixStart = scope.gizmo.target.matrixWorld.clone();
+      worldMatrixStart = scope.target.matrixWorld.clone();
       worldMatrixRotationStart.extractRotation( worldMatrixStart );
       worldPositionStart.setFromMatrixPosition( worldMatrixStart );
 
@@ -226,8 +271,8 @@
 
       if ( !point ) return;
 
-      var target = scope.gizmo.target;
-      var axis = scope.gizmo.axis;
+      var target = scope.target;
+      var axis = scope.axis;
 
       var direction;
 
@@ -280,12 +325,12 @@
         if ( axis === 'E' ) {
 
           localCross.applyMatrix4( worldMatrixRotationStart ).normalize();
-          direction = localCross.dot(scope.gizmo.eye) < 0 ? 1 : -1;
-          worldQuaternion.setFromAxisAngle( scope.gizmo.eye, localPoint.angleTo(localPointStart) * direction );
+          direction = localCross.dot(scope.eye) < 0 ? 1 : -1;
+          worldQuaternion.setFromAxisAngle( scope.eye, localPoint.angleTo(localPointStart) * direction );
 
         } else if ( axis === 'XYZE' ) {
 
-          tempVector.copy(worldShift).cross(scope.gizmo.eye).normalize();
+          tempVector.copy(worldShift).cross(scope.eye).normalize();
           worldQuaternion.setFromAxisAngle( tempVector, - 0.04 * worldShift.length() );
 
         } else {
@@ -313,7 +358,6 @@
 
       }
 
-      scope.gizmo.updateTransform();
       scope.dispatchEvent( { type: 'transform' } );
       scope.dispatchChangeEvent();
 
@@ -327,6 +371,7 @@
       scope.selection.helper.visible = true;
 
       scope.dispatchEvent( { type: 'transformend' } );
+      scope.dispatchEvent( { type: 'render' } );
 
     }
 
@@ -334,17 +379,19 @@
 
     this.onHover = function ( event, pointers ) {
 
-      scope.gizmo.setAxis( pointers[ 0 ] );
+      scope.setAxis( pointers[ 0 ] );
 
     };
 
     this.onTrackstart = function ( event, pointers ) {
 
-      if ( !scope.gizmo.target ) return;
+      if ( !scope.target ) return;
 
-      scope.gizmo.setAxis( pointers[ 0 ] );
-      scope.gizmo.updatePlaneOrientation();
-      point = scope.gizmo.getPointOnPlane( pointers[ 0 ] );
+      scope.setAxis( pointers[ 0 ] );
+      scope.updatePlaneOrientation();
+      point = scope.getPointOnPlane( pointers[ 0 ] );
+
+      scope.active = scope.axis !== '';
 
       transformStart( point );
 
@@ -352,18 +399,20 @@
 
     this.onTrack = function ( event, pointers ) {
 
-      if ( !scope.gizmo.target ) return;
+      if ( !scope.target ) return;
 
-      scope.gizmo.updatePlaneOrientation();
-      point = scope.gizmo.getPointOnPlane( pointers[ 0 ] );
+      scope.updatePlaneOrientation();
+      point = scope.getPointOnPlane( pointers[ 0 ] );
 
-      if ( point && scope.gizmo.axis ) transform( point );
+      if ( point && scope.axis ) transform( point );
 
     };
 
     this.onTrackend = function ( event, pointers ) {
 
-      scope.gizmo.axis = '';
+      scope.axis = '';
+
+      scope.active = false;
 
       transformEnd();
 
@@ -400,150 +449,15 @@
   THREE.TransformControl.prototype = Object.create( THREE.Control.prototype );
   THREE.TransformControl.prototype.constructor = THREE.TransformControl;
 
-  THREE.TransformControl.prototype.update = function () {
+  THREE.TransformControl.prototype.updateTransform = function ( camera ) {
 
-    this.gizmo.updateTransform();
+    if ( !this.target ) return;
 
-  };
+    camera = camera || this.camera;
 
-  THREE.TransformControl.prototype.setTargetFromSelection = function () {
-
-    if ( this.selection.objects.length ) {
-
-      this.gizmo.target = this.selection.objects[ this.selection.objects.length - 1 ];
-
-    } else {
-
-      this.gizmo.target = undefined;
-
-    }
-
-  };
-
-
-  // Deprication warnings
-
-  THREE.TransformControl.prototype.setMode = function ( mode ) {
-
-    console.warn( 'THREE.TransformControl: .setMode has been deprecated. Use .mode property instead.' );
-    this.mode = mode;
-
-  };
-
-  THREE.TransformControl.prototype.setTranslationSnap = function ( translationSnap ) {
-
-    console.warn( 'THREE.TransformControl: .setTranslationSnap has been deprecated. Use .translationSnap property instead.' );
-    scope.translationSnap = translationSnap;
-
-  };
-
-  THREE.TransformControl.prototype.setRotationSnap = function ( rotationSnap ) {
-
-    console.warn( 'THREE.TransformControl: .setRotationSnap has been deprecated. Use .rotationSnap property instead.' );
-    scope.rotationSnap = rotationSnap;
-
-  };
-
-  THREE.TransformControl.prototype.setSize = function ( size ) {
-
-    console.warn( 'THREE.TransformControl: .setSize has been deprecated. Use .size property instead.' );
-    scope.size = size;
-
-  };
-
-  THREE.TransformControl.prototype.setSpace = function ( space ) {
-
-    console.warn( 'THREE.TransformControl: .setSpace has been deprecated. Use .space property instead.' );
-    scope.space = space;
-
-  };
-
-
-  // TODO: move to control
-  THREE.TransformGizmoControl = function ( camera, target ) {
-
-    THREE.Control.call( this );
-
-    this.registerProperties( {
-      camera: {
-        observer: 'cameraChanged'
-      },
-      target: {
-        value: target,
-        type: THREE.Object3D,
-        observer: 'targetChanged'
-      },
-      mode: {
-        value: 'translate',
-        type: 'string',
-        observer: 'modeChanged'
-      },
-      size: {
-        value: 1,
-        type: 'number',
-        observer: 'updateTransform'
-      },
-      axis: {
-        value: '',
-        type: 'string',
-        observer: 'axisChanged'
-      },
-      space: {
-        value: 'local',
-        type: 'string',
-        observer: 'spaceChanged'
-      }
-    } );
-
-    this.camera = camera;
-
-    this.helper = new THREE.Object3D();
-
-    this.plane = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry( 5000, 5000, 2, 2 ),
-      new THREE.MeshBasicMaterial( { visible: false, wireframe: true, side: THREE.DoubleSide } )
-    );
-    this.helper.add( this.plane );
-
-    this.gnomon = new THREE.Object3D();
-    this.helper.add( this.gnomon );
-
-    this.handles = new THREE.Object3D();
-    this.pickers = new THREE.Object3D();
-    this.gnomon.add( this.handles );
-    this.gnomon.add( this.pickers );
-
-    this._handleModes = {
-      translate: this.makeGizmoTranslate(),
-      rotate: this.makeGizmoRotate(),
-      scale: this.makeGizmoScale()
-    };
-
-    this._pickerModes = {
-      translate: this.makePickerTranslate(),
-      rotate: this.makePickerTranslate(),
-      scale: this.makePickerTranslate()
-    };
-
-    // transformations
-
-    this.position = new THREE.Vector3();
-    this.scale  = new THREE.Vector3();
-    this.quaternion  = new THREE.Quaternion();
-    this.eye = new THREE.Vector3();
-    this.alignVector = new THREE.Vector3();
-
-  };
-
-  THREE.TransformGizmoControl.prototype = Object.create( THREE.Control.prototype );
-  THREE.TransformGizmoControl.prototype.constructor = THREE.TransformGizmoControl;
-
-  THREE.TransformGizmoControl.prototype.updateTransform = function () {
-
-    if ( !this.camera || !this.target ) return;
+    camera.updateMatrixWorld();
 
     this.target.updateMatrixWorld();
-    this.camera.updateMatrixWorld();
 
     this.position.setFromMatrixPosition( this.target.matrixWorld );
     this.scale.setFromMatrixScale( this.target.matrixWorld );
@@ -556,20 +470,18 @@
 
     }
 
-    if ( this.camera instanceof THREE.OrthographicCamera ) {
+    if ( camera instanceof THREE.OrthographicCamera ) {
 
-      scale = ( this.camera.top - this.camera.bottom ) / 3 * this.size;
-      this.eye.copy( unitZ ).applyMatrix4( tempMatrix.extractRotation( this.camera.matrixWorld ) ).normalize();
+      scale = ( camera.top - camera.bottom ) / 3 * this.size;
+      this.eye.copy( unitZ ).applyMatrix4( tempMatrix.extractRotation( camera.matrixWorld ) ).normalize();
 
     } else {
 
-      tempVector.setFromMatrixPosition( this.camera.matrixWorld ).sub( this.position );
+      tempVector.setFromMatrixPosition( camera.matrixWorld ).sub( this.position );
       scale = tempVector.length() / 6 * this.size;
       this.eye.copy( tempVector ).normalize();
 
     }
-
-    // this.lookAtMatrix.lookAt( this.eye, unit0, unitY );
 
     this.helper.position.copy( this.position );
     this.helper.scale.set( scale, scale, scale );
@@ -622,7 +534,7 @@
 
   };
 
-  THREE.TransformGizmoControl.prototype.updateVisibility = function () {
+  THREE.TransformControl.prototype.updateVisibility = function () {
 
     if ( !this.target || !this.enabled ) {
       this.helper.visible = false;
@@ -703,7 +615,7 @@
 
   };
 
-  THREE.TransformGizmoControl.prototype.updatePlaneOrientation = function () {
+  THREE.TransformControl.prototype.updatePlaneOrientation = function () {
 
     if ( this.axis === '' ) return;
 
@@ -764,41 +676,7 @@
 
   };
 
-  THREE.TransformGizmoControl.prototype.cameraChanged = function () {
-
-    this.updateTransform();
-
-    this.updatePlaneOrientation();
-
-  }
-
-  THREE.TransformGizmoControl.prototype.targetChanged = function () {
-
-    this.updateTransform();
-
-    this.updateVisibility();
-
-    this.updatePlaneOrientation();
-
-  }
-
-  THREE.TransformGizmoControl.prototype.spaceChanged = function () {
-
-    this.updateTransform();
-
-    this.updatePlaneOrientation();
-
-  }
-
-  THREE.TransformGizmoControl.prototype.enabledChanged = function () {
-
-    this.updateTransform();
-
-    this.updateVisibility();
-
-  }
-
-  THREE.TransformGizmoControl.prototype.axisChanged = function () {
+  THREE.TransformControl.prototype.axisChanged = function () {
 
     this.handles.traverse( function( child ) {
 
@@ -823,11 +701,9 @@
 
     }.bind( this ) );
 
-    this.updatePlaneOrientation();
-
   };
 
-  THREE.TransformGizmoControl.prototype.modeChanged = function () {
+  THREE.TransformControl.prototype.modeChanged = function () {
 
     for ( var i = this.gnomon.children.length; i--; ) {
       this.gnomon.remove( this.gnomon.children[ i ] );
@@ -842,13 +718,11 @@
     this.gnomon.add( this.pickers );
     this.gnomon.add( this.plane );
 
-    this.updateTransform();
-
-    this.updatePlaneOrientation();
+    this.dispatchEvent( { type: 'render' } );
 
   };
 
-  THREE.TransformGizmoControl.prototype.setAxis = function ( pointer ) {
+  THREE.TransformControl.prototype.setAxis = function ( pointer ) {
 
     ray.setFromCamera( pointer.position, this.camera );
     intersect = ray.intersectObjects( [ this.pickers ], true )[ 0 ];
@@ -869,12 +743,65 @@
 
   };
 
-  THREE.TransformGizmoControl.prototype.getPointOnPlane = function ( pointer ) {
+  THREE.TransformControl.prototype.getPointOnPlane = function ( pointer ) {
 
     ray.setFromCamera( pointer.position, this.camera );
     intersect = ray.intersectObjects( [ this.plane ] )[ 0 ];
 
     if ( intersect ) return intersect.point;
+
+  };
+
+  THREE.TransformControl.prototype.setTargetFromSelection = function () {
+
+    if ( this.selection.objects.length ) {
+
+      this.target = this.selection.objects[ this.selection.objects.length - 1 ];
+
+    } else {
+
+      this.target = undefined;
+
+    }
+
+  };
+
+  //////////////////////////
+  // Deprication warnings //
+  //////////////////////////
+
+  THREE.TransformControl.prototype.setMode = function ( mode ) {
+
+    console.warn( 'THREE.TransformControl: .setMode has been deprecated. Use .mode property instead.' );
+    this.mode = mode;
+
+  };
+
+  THREE.TransformControl.prototype.setTranslationSnap = function ( translationSnap ) {
+
+    console.warn( 'THREE.TransformControl: .setTranslationSnap has been deprecated. Use .translationSnap property instead.' );
+    scope.translationSnap = translationSnap;
+
+  };
+
+  THREE.TransformControl.prototype.setRotationSnap = function ( rotationSnap ) {
+
+    console.warn( 'THREE.TransformControl: .setRotationSnap has been deprecated. Use .rotationSnap property instead.' );
+    scope.rotationSnap = rotationSnap;
+
+  };
+
+  THREE.TransformControl.prototype.setSize = function ( size ) {
+
+    console.warn( 'THREE.TransformControl: .setSize has been deprecated. Use .size property instead.' );
+    scope.size = size;
+
+  };
+
+  THREE.TransformControl.prototype.setSpace = function ( space ) {
+
+    console.warn( 'THREE.TransformControl: .setSpace has been deprecated. Use .space property instead.' );
+    scope.space = space;
 
   };
 

@@ -20,28 +20,27 @@
   var theta, phi, rect, radius, distance, fovFactor;
   var cw, ch, aspect, delta, center, scale, minCenter, maxCenter;
 
-  THREE.ViewportControl = function ( camera, domElement, target, selection ) {
+  THREE.ViewportControl = function ( parameters ) {
 
     THREE.Control.call( this );
 
+    parameters = parameters || {};
+
     this.registerProperties( {
-      target: {
-        value: target,
-        type: THREE.Vector3
+      camera: {
+        value: parameters.camera
+      },
+      domElement: {
+        value: parameters.domElement
+      },
+      selection: {
+        value: parameters.selection
       }
     } );
-
-    this.camera = camera;
-    this.domElement = domElement;
-    this.selection = selection;
 
     // internal variables
 
     var scope = this;
-
-    var STATE = { NONE: - 1, ROTATE: 0, ZOOM: 1, PAN: 2 };
-    var state = STATE.NONE;
-    var pointers;
 
     // event handlers
 
@@ -63,13 +62,13 @@
 
         }
 
-        if ( event.button === 1 || event.altKey ) {
+        if ( event.button === 1 ) {
 
           scope.zoom( pointers[ 0 ].delta );
 
         }
 
-        if ( event.button === 2 || event.ctrlKey ) {
+        if ( event.button === 2 ) {
 
           scope.pan( pointers[ 0 ].delta );
 
@@ -110,12 +109,6 @@
 
     };
 
-    this.onTrackend = function ( event, pointers ) {
-
-      state = STATE.NONE;
-
-    };
-
     this.onMousewheel = function ( event, delta ) {
 
       scope.zoom( new THREE.Vector2( 0, delta / 1000 ) );
@@ -139,15 +132,15 @@
 
   THREE.ViewportControl.prototype.rotate = function ( delta ) {
 
-    vector.copy( this.camera.position ).sub( this.target );
+    this.camera._target = this.camera._target || new THREE.Vector3();
+
+    vector.copy( this.camera.position ).sub( this.camera._target );
 
     theta = Math.atan2( vector.x, vector.z );
     phi = Math.atan2( Math.sqrt( vector.x * vector.x + vector.z * vector.z ), vector.y );
-    rect = this.domElement.getBoundingClientRect();
 
-    // Denormalize rotation ammount;
-    theta -= delta.x * rect.width * 0.005;
-    phi -= - delta.y * rect.height * 0.005;
+    theta -= delta.x * 3;
+    phi -= - delta.y * 3;
 
     phi = Math.max( EPS, Math.min( Math.PI - EPS, phi ) );
 
@@ -157,9 +150,9 @@
     vector.y = radius * Math.cos( phi );
     vector.z = radius * Math.sin( phi ) * Math.cos( theta );
 
-    this.camera.position.copy( this.target ).add( vector );
+    this.camera.position.copy( this.camera._target ).add( vector );
 
-    this.camera.lookAt( this.target );
+    this.camera.lookAt( this.camera._target );
 
     this.dispatchChangeEvent();
 
@@ -167,7 +160,9 @@
 
   THREE.ViewportControl.prototype.pan = function ( delta ) {
 
-    distance = this.camera.position.distanceTo( this.target );
+    this.camera._target = this.camera._target || new THREE.Vector3();
+
+    distance = this.camera.position.distanceTo( this.camera._target );
 
     vector.set( - delta.x, - delta.y, 0 );
 
@@ -186,7 +181,7 @@
 
     vector.applyMatrix3( matrix.getNormalMatrix( this.camera.matrix ) );
     this.camera.position.add( vector );
-    this.target.add( vector );
+    this.camera._target.add( vector );
 
     this.dispatchChangeEvent();
 
@@ -194,9 +189,11 @@
 
   THREE.ViewportControl.prototype.zoom = function ( delta ) {
 
+    this.camera._target = this.camera._target || new THREE.Vector3();
+
     if ( this.camera instanceof THREE.PerspectiveCamera ) {
 
-      var distance = this.camera.position.distanceTo( this.target );
+      var distance = this.camera.position.distanceTo( this.camera._target );
 
       vector.set( 0, 0, delta.y );
 
@@ -223,28 +220,30 @@
 
   THREE.ViewportControl.prototype.focusSelection = function () {
 
+    this.camera._target = this.camera._target || new THREE.Vector3();
+
     if ( this.selection && this.selection.objects.length ) {
 
       if ( this.selection.sphere.radius ) {
 
         var radius = this.selection.sphere.radius;
-        var offset = this.camera.position.clone().sub( this.target );
+        var offset = this.camera.position.clone().sub( this.camera._target );
 
         if ( this.camera instanceof THREE.PerspectiveCamera ) {
 
-          this.target.copy( this.selection.center );
+          this.camera._target.copy( this.selection.center );
 
           var fovFactor = Math.tan( ( this.camera.fov / 2 ) * Math.PI / 180.0 );
           offset.normalize().multiplyScalar( radius  / fovFactor );
 
-          this.camera.position.copy( this.target ).add( offset );
+          this.camera.position.copy( this.camera._target ).add( offset );
 
-          this.camera.lookAt( this.target );
+          this.camera.lookAt( this.camera._target );
 
         } else if ( this.camera instanceof THREE.OrthographicCamera ) {
 
-          this.target.copy( this.selection.center );
-          this.camera.position.copy( this.target ).add( offset );
+          this.camera._target.copy( this.selection.center );
+          this.camera.position.copy( this.camera._target ).add( offset );
 
           cw = this.camera.right - this.camera.left;
           ch = this.camera.top - this.camera.bottom;

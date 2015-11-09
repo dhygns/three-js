@@ -17,25 +17,36 @@
   clickmask.style.cursor = 'move';
   // clickmask.style.background = 'rgba(0,255,255,0.2)';
 
+  var raycaster = new THREE.Raycaster();
+  var intersect;
+
+  var plane = new THREE.Mesh(
+    new THREE.PlaneBufferGeometry(1000000, 1000000, 2, 2),
+    new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0 })
+  );
+  plane.rotation.set(Math.PI / 2, 0, 0);
+  plane.updateMatrixWorld();
+  // TODO: align plane
+
   THREE.Control = function () {
 
     // internal variables.
 
     this._properties = {};
-    this._effects = {};
-    this._targetEffects = {};
+    this._viewports = [];
 
     this.registerProperties( {
-      domElement: {
-        type: HTMLElement,
-        notify: true
-      },
       camera: {
         type: THREE.Camera,
         notify: true
       },
+      domElement: {
+        type: HTMLElement,
+        notify: true
+      },
       scene: {
         type: THREE.Scene,
+        observer: 'addHelper',
         notify: true
       },
       selection: {
@@ -46,6 +57,10 @@
       active: {
         value: false,
         type: 'boolean',
+        notify: true
+      },
+      mode: {
+        type: 'string',
         notify: true
       },
       enabled: {
@@ -60,6 +75,7 @@
     var rect, touches, pointer;
     var positions, positionsStart, positionsOld, positionDeltas, closestPointer;
     var preventTouchmove = false;
+    var viewport;
 
     // helper functions
 
@@ -81,7 +97,7 @@
       return closestPointer;
     };
 
-    this.getPointersFromEvent = function ( event, reset ) {
+    var getPointersFromEvent = function ( event, reset ) {
 
       touches = event.touches ? event.touches : [ event ];
 
@@ -137,7 +153,14 @@
 
       if ( scope.enabled === false ) return;
 
-      pointers = scope.getPointersFromEvent( event, true );
+      viewport = getViewport( event.path[ 0 ] );
+
+      if ( !viewport ) return;
+
+      scope.domElement = event.path[ 0 ];
+      scope.camera = getViewport( event.path[ 0 ] ).camera;
+
+      pointers = getPointersFromEvent( event, true );
 
       if ( typeof scope.onTrackstart === 'function' ) {
 
@@ -152,9 +175,16 @@
 
     function onMousemove ( event ) {
 
-      if ( scope.enabled === false ) return;
+      if ( scope.enabled === false ) {
 
-      pointers = scope.getPointersFromEvent( event );
+        window.removeEventListener( 'mousemove', onMousemove );
+        window.removeEventListener( 'mouseup', onMouseup );
+
+        return;
+
+      }
+
+      pointers = getPointersFromEvent( event );
 
       if ( typeof scope.onTrack === 'function' ) {
 
@@ -172,16 +202,6 @@
 
     function onMouseup ( event ) {
 
-      if ( scope.enabled === false ) return;
-
-      pointers = scope.getPointersFromEvent( event );
-
-      if ( typeof scope.onTrackend === 'function' ) {
-
-        scope.onTrackend( event, pointers );
-
-      }
-
       window.removeEventListener( 'mousemove', onMousemove );
       window.removeEventListener( 'mouseup', onMouseup );
 
@@ -191,13 +211,29 @@
 
       }
 
+      if ( scope.enabled === false ) return;
+
+      pointers = getPointersFromEvent( event );
+
+      if ( typeof scope.onTrackend === 'function' ) {
+
+        scope.onTrackend( event, pointers );
+
+      }
+
     }
 
     function onHover ( event ) {
 
       if ( scope.enabled === false ) return;
 
-      pointers = scope.getPointersFromEvent( event );
+      viewport = getViewport( event.path[ 0 ] );
+
+      if ( !viewport ) return;
+      scope.domElement = viewport.domElement;
+      scope.camera = viewport.camera;
+
+      pointers = getPointersFromEvent( event );
 
       if ( typeof scope.onHover === 'function' ) {
 
@@ -211,9 +247,15 @@
 
       event.preventDefault();
 
-      scope.domElement.focus();
+      event.path[ 0 ].focus();
 
       if ( scope.enabled === false ) return;
+
+      viewport = getViewport( event.path[ 0 ] );
+
+      if ( !viewport ) return;
+      scope.domElement = viewport.domElement;
+      scope.camera = viewport.camera;
 
       preventTouchmove = true;
 
@@ -223,7 +265,7 @@
 
       } );
 
-      pointers = scope.getPointersFromEvent( event, true );
+      pointers = getPointersFromEvent( event, true );
 
       if ( typeof scope.onHover === 'function' ) {
 
@@ -237,8 +279,8 @@
 
       }
 
-      scope.domElement.addEventListener( 'touchmove', onTouchmove );
-      scope.domElement.addEventListener( 'touchend', onTouchend );
+      event.path[ 0 ].addEventListener( 'touchmove', onTouchmove );
+      event.path[ 0 ].addEventListener( 'touchend', onTouchend );
 
     }
 
@@ -246,15 +288,28 @@
 
       event.preventDefault();
 
-      if ( scope.enabled === false ) return;
+      if ( scope.enabled === false ) {
+
+        event.path[ 0 ].removeEventListener( 'touchmove', onTouchmove );
+        event.path[ 0 ].removeEventListener( 'touchend', onTouchend );
+
+        return;
+
+      }
 
       if ( preventTouchmove === true ) return;
 
-      pointers = scope.getPointersFromEvent( event );
+      pointers = getPointersFromEvent( event );
 
       if ( typeof scope.onTrack === 'function' ) {
 
         scope.onTrack( event, pointers );
+
+      }
+
+      if ( clickmask.parentNode !== document.body ) {
+
+        document.body.appendChild( clickmask );
 
       }
 
@@ -264,6 +319,15 @@
 
       event.preventDefault();
 
+      event.path[ 0 ].removeEventListener( 'touchmove', onTouchmove );
+      event.path[ 0 ].removeEventListener( 'touchend', onTouchend );
+
+      if ( clickmask.parentNode == document.body ) {
+
+        document.body.removeChild( clickmask );
+
+      }
+
       if ( scope.enabled === false ) return;
 
       if ( typeof scope.onTrackend === 'function' ) {
@@ -272,12 +336,13 @@
 
       }
 
-      scope.domElement.removeEventListener( 'touchmove', onTouchmove );
-      scope.domElement.removeEventListener( 'touchend', onTouchend );
-
     }
 
     function onMousewheel ( event ) {
+
+      viewport = getViewport( event.path[ 0 ] );
+
+      if ( !viewport ) return;
 
       event.preventDefault();
 
@@ -305,6 +370,10 @@
 
     function onKeyup ( event ) {
 
+      viewport = getViewport( event.path[ 0 ] );
+
+      if ( !viewport ) return;
+
       if ( scope.enabled === false ) return;
 
       if ( typeof scope.onKeyup === 'function' ) scope.onKeyup( event, event.which );
@@ -312,6 +381,10 @@
     };
 
     function onContextmenu ( event ) {
+
+      viewport = getViewport( event.path[ 0 ] );
+
+      if ( !viewport ) return;
 
       event.preventDefault();
 
@@ -321,46 +394,78 @@
 
     };
 
+    function getViewport ( domElement ) {
+
+      return scope._viewports.find( function ( e ) {
+
+        return e.domElement === domElement;
+
+      } );
+
+    };
+
     // this.onKeyup = function ( event, key ) { console.log('onKeyup'); };
     // this.onContextmenu = function ( event, pointers ) { console.log('onContextmenu'); };
     // this.onTrackstart = function ( event, pointers ) { console.log('onTrackstart'); };
     // this.onMousewheel = function ( event, delta ) { console.log('onMousewheel'); };
     // this.onTrack = function ( event, pointers ) { console.log('onTrack'); };
     // this.onTrackend = function ( event, pointers ) { console.log('onTrackend'); };
+    // this.onHover = function ( event, pointers ) { console.log('onHover'); };
 
-    this.addEventListener( 'domelementchange', function ( event ) {
+    this.registerViewport = function ( domElement, camera ) {
 
-      if ( event.value ) {
+      viewport = getViewport( domElement );
 
-        event.value.addEventListener( 'mousedown', onMousedown );
-        event.value.addEventListener( 'touchstart', onTouchstart );
-        event.value.addEventListener( 'mousewheel', onMousewheel );
-        event.value.addEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
-        event.value.addEventListener( 'mousemove', onHover );
-        event.value.addEventListener( 'keyup', onKeyup );
-        event.value.addEventListener( 'contextmenu', onContextmenu );
+      if ( !viewport ) {
+
+        viewport = {
+          domElement: domElement,
+          camera: camera
+        };
+
+        scope._viewports.push( viewport );
+
+        domElement.addEventListener( 'mousedown', onMousedown );
+        domElement.addEventListener( 'touchstart', onTouchstart );
+        domElement.addEventListener( 'mousewheel', onMousewheel );
+        domElement.addEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
+        domElement.addEventListener( 'mousemove', onHover );
+        domElement.addEventListener( 'keyup', onKeyup );
+        domElement.addEventListener( 'contextmenu', onContextmenu );
+
+      } else if ( camera ) {
+
+        viewport.camera = camera;
 
       }
 
-      if ( event.oldValue ) {
+    };
 
-        event.oldValue.removeEventListener( 'mousedown', onMousedown );
-        event.oldValue.removeEventListener( 'touchstart', onTouchstart );
-        event.oldValue.removeEventListener( 'mousewheel', onMousewheel );
-        event.oldValue.removeEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
-        event.oldValue.removeEventListener( 'mousemove', onHover );
-        event.oldValue.removeEventListener( 'keyup', onKeyup );
-        event.oldValue.removeEventListener( 'contextmenu', onContextmenu );
+    this.unregisterViewport = function ( domElement ) {
+
+      viewport = getViewport( domElement );
+
+      if ( viewport ) {
+
+        domElement.removeEventListener( 'mousedown', onMousedown );
+        domElement.removeEventListener( 'touchstart', onTouchstart );
+        domElement.removeEventListener( 'mousewheel', onMousewheel );
+        domElement.removeEventListener( 'DOMMouseScroll', onMousewheel ); // firefox
+        domElement.removeEventListener( 'mousemove', onHover );
+        domElement.removeEventListener( 'keyup', onKeyup );
+        domElement.removeEventListener( 'contextmenu', onContextmenu );
+
+        scope._viewports.splice( scope._viewports.indexOf( viewport ), 1 );
 
       }
 
-    } );
+    };
 
   };
 
   THREE.EventDispatcher.prototype.apply( THREE.Control.prototype );
 
-  THREE.Control.prototype.registerProperty = function ( key, value, type, observer, notify ) {
+  THREE.Control.prototype._registerProperty = function ( key, value, type, observer, notify, readOnly ) {
 
     var _changeEvent = key.toLowerCase() + 'change';
     var _oldValue;
@@ -378,6 +483,12 @@
         set: function ( value ) {
 
           if ( this._properties[ key ] === value ) return;
+
+          if ( readOnly ) {
+
+            console.warn( 'THREE.Control: ' + key + ' is read only.');
+
+          }
 
           if ( type && value !== undefined ) {
 
@@ -398,15 +509,15 @@
           _oldValue = this._properties[ key ];
           this._properties[ key ] = value;
 
-          if ( notify || observer || this._effects[ _changeEvent ] || this._targetEffects[ _changeEvent ] ) {
+          if ( notify || observer ) {
 
             this.debounce( _changeEvent, function () {
 
               this.dispatchEvent( { type: _changeEvent, value: value, oldVaue: _oldValue } );
 
-            }.bind( this ));
+              this.dispatchChangeEvent();
 
-            this.dispatchChangeEvent();
+            }.bind( this ));
 
           }
 
@@ -430,62 +541,48 @@
 
     for ( var key in properties ) {
 
-      this.registerProperty(
+      this._registerProperty(
         key,
         properties[ key ].value,
         properties[ key ].type,
         properties[ key ].observer,
-        properties[ key ].notify
+        properties[ key ].notify,
+        properties[ key ].readOnly
       );
 
     }
 
   };
 
-  THREE.Control.prototype.bindProperty = function ( key, target, targetkey ) {
-
-    var _changeEvent = key.toLowerCase() + 'change';
-    var _targetChangeEvent = targetkey.toLowerCase() + 'change';
-
-    this._effects[ _changeEvent ] =  function () { target[ targetkey ] = this[ key ]; }.bind( this );
-    this._targetEffects[ _targetChangeEvent ] =   function () { this[ key ] = target[ targetkey ]; }.bind( this ),
-
-    this.addEventListener( _changeEvent, this._effects[ _changeEvent ] );
-    target.addEventListener( _targetChangeEvent, this._targetEffects[ _targetChangeEvent ] );
-
-    target[ targetkey ] = this[ key ];
-
-  };
-
   THREE.Control.prototype.dispose = function () {
 
-    var id;
+    var i, j;
 
-    if (this._effects) {
-      for ( id in _effects ) {
-        this.removeEventListener( id, _effects[ id ] );
-        delete this._effects[ id ];
-      }
+    for ( i = this._viewports.length; i--; ) {
+      this.unregisterViewport( this._viewports[ i ].domElement );
     }
 
-    if (this._targetEffects) {
-      for ( id in _targetEffects ) {
-        this.removeEventListener( id, _targetEffects[ id ] );
-        delete this._targetEffects[ id ];
+    for ( i in this._listeners ) {
+      for ( j = this._listeners[ i ].length; j--; ) {
+
+        this.removeEventListener( i, this._listeners[ i ][ j ] );
       }
+      delete this._listeners[ i ];
     }
 
-    if (this._properties) {
-      for ( var key in this._properties ) {
-        delete this._properties[ key ];
-      }
+    for ( i in this._properties ) {
+      delete this._properties[ i ];
     }
 
-    if (this._debouncers) {
-      for ( id in this._debouncers ) {
-        window.clearTimeout( this._debouncers[ id ] );
-        delete this._debouncers[ id ];
-      }
+    for ( i in this._debouncers ) {
+      window.clearTimeout( this._debouncers[ i ] );
+      delete this._debouncers[ i ];
+    }
+
+    if ( this.helper && this.helper.parent ) {
+
+      this.helper.parent.remove( this.helper );
+
     }
 
   };
@@ -534,5 +631,27 @@
     if ( event.value ) event.value.addEventListener( 'change', this._selectionEvent );
 
   };
+
+  THREE.Control.prototype.getPointOnPlane = function ( pointer ) {
+
+    raycaster.setFromCamera( pointer, this.camera );
+    intersect = raycaster.intersectObjects( [ plane ], true )[ 0 ];
+
+    if ( intersect ) return intersect.point;
+
+  };
+
+  THREE.Control.prototype.addHelper = function () {
+
+    this.scene._helpers = this.scene._helpers || new THREE.Scene();
+
+    if ( this.helper ) {
+
+      this.scene._helpers.add( this.helper );
+
+    }
+
+  };
+
 
 }());

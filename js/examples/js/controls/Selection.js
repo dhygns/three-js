@@ -106,7 +106,7 @@
 
           this.objects.push( items[ i ] );
 
-          this.addEdgesHelper( items[ i ] );
+          // this.addEdgesHelper( items[ i ] );
 
         }
 
