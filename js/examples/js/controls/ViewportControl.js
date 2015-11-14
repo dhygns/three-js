@@ -113,7 +113,7 @@
 
       scope.zoom( new THREE.Vector2( 0, delta / 1000 ) );
 
-    }
+    };
 
     this.onKeyup = function ( event, key ) {
 

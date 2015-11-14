@@ -378,7 +378,7 @@
 
       if ( typeof scope.onKeyup === 'function' ) scope.onKeyup( event, event.which );
 
-    };
+    }
 
     function onContextmenu ( event ) {
 
@@ -392,7 +392,7 @@
 
       if ( typeof scope.onContextmenu === 'function' ) scope.onContextmenu( event );
 
-    };
+    }
 
     function getViewport ( domElement ) {
 
@@ -402,7 +402,7 @@
 
       } );
 
-    };
+    }
 
     // this.onKeyup = function ( event, key ) { console.log('onKeyup'); };
     // this.onContextmenu = function ( event, pointers ) { console.log('onContextmenu'); };
