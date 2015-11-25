@@ -2,17 +2,13 @@
 <link rel="import" href="../three-js.html">
 
 <dom-module id="demo-app">
-  <template>
-
-    This element imports THREE.js library
-
-  </template>
+  <template></template>
 </dom-module>
 <script>
   Polymer({
     is: 'demo-app',
     ready: function () {
-      var renderer = new THREE.WebGLSharedRenderer();
+      var renderer = new THREE.WebGLRenderer();
 
       this.appendChild(renderer.domElement);
 
@@ -28,7 +24,6 @@
       scene.add( mesh );
 
       renderer.render(scene, camera);
-
     }
   });
 </script>
