@@ -1,15 +1,25 @@
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="three-js-imports.html">
-
-<!--
-HTML Import for three.js library.
-
-@demo demo/index.html Basic Demo
--->
+<script src="../three.js/build/three.js"></script>
+<script src="../three.js/examples/js/Detector.js"></script>
+<script src="../three.js/examples/js/curves/NURBSCurve.js"></script>
+<script src="../three.js/examples/js/curves/NURBSSurface.js"></script>
+<script src="../three.js/examples/js/curves/NURBSUtils.js"></script>
+<script src="../three.js/examples/js/loaders/ColladaLoader.js"></script>
+<script src="../three.js/examples/js/libs/pnltri.min.js"></script>
 
 <script>
-Polymer({
-	is: 'three-js',
-	properties: {}
-});
+
+/**
+ * HTML imports three.js library
+ * @homepage https://github.com/arodic/three-js
+ * @demo http://akirodic.com/components/three-js/demo.html
+ */
+
+THREE.ShapeUtils.triangulateShape = (function() {
+	var pnlTriangulator = new PNLTRI.Triangulator();
+	return function(contour, holes) {
+		// console.log("new Triangulation: PnlTri.js " + PNLTRI.REVISION );
+		return pnlTriangulator.triangulate_polygon([contour].concat(holes));
+	};
+})();
+
 </script>
