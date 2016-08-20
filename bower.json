@@ -1,6 +1,6 @@
 {
   "name": "three-js",
-  "version": "1.2.2",
+  "version": "1.6.0",
   "authors": [
     "Aki Rodic <aleksandar.xyz@gmail.com>"
   ],
@@ -14,8 +14,8 @@
     "**/.*"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#~1.2.2",
-    "io-vector": "arodic/io-vector#~1.2.2",
-    "three.js": "mrdoob/three.js#r73"
+    "polymer": "Polymer/polymer#^1.6.1",
+    "io-vector": "arodic/io-vector#^1.6.0",
+    "three.js": "mrdoob/three.js#r79"
   }
 }
